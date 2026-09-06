@@ -545,3 +545,65 @@ $$;
 -- con getSupabaseAdmin() (service_role). Ver la misma nota en
 -- activar_conferencia() más arriba.
 grant execute on function checkin_registrar_asistente(text, text, uuid) to service_role;
+
+-- =============================================================================
+-- 8. FUNCIONES: preguntas para la pantalla kiosko, con nombre de asistente
+--
+-- app/admin/pantalla/[qr_slug] necesita el nombre del asistente junto a cada
+-- pregunta aprobada, pero "anon" no tiene (ni debe tener) GRANT SELECT sobre
+-- "attendees" (ver supabase/grants.sql: la tabla tiene email/access_code).
+-- Mismo patrón que buscar_asistente(): SECURITY DEFINER, hace el join
+-- puertas adentro y devuelve solo id/texto/created_at/nombre.
+-- =============================================================================
+
+create or replace function preguntas_pantalla(
+  p_conference_id uuid,
+  p_limite integer default 30
+)
+returns table (
+  id         uuid,
+  texto      text,
+  created_at timestamptz,
+  nombre     text
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select q.id, q.texto, q.created_at, a.nombre
+  from questions q
+  join attendees a on a.id = q.attendee_id
+  where q.conference_id = p_conference_id
+    and q.ai_status = 'aprobada'
+    and q.mostrada_en_pantalla = true
+  order by q.created_at desc
+  limit p_limite;
+$$;
+
+grant execute on function preguntas_pantalla(uuid, integer) to anon, authenticated;
+
+-- Usada por el handler de Realtime en PantallaKiosko.tsx: trae una sola
+-- fila puntual (con nombre) cuando una pregunta pasa a aprobada.
+create or replace function pregunta_pantalla_por_id(p_id uuid)
+returns table (
+  id         uuid,
+  texto      text,
+  created_at timestamptz,
+  nombre     text
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select q.id, q.texto, q.created_at, a.nombre
+  from questions q
+  join attendees a on a.id = q.attendee_id
+  where q.id = p_id
+    and q.ai_status = 'aprobada'
+    and q.mostrada_en_pantalla = true
+  limit 1;
+$$;
+
+grant execute on function pregunta_pantalla_por_id(uuid) to anon, authenticated;
