@@ -91,12 +91,22 @@ create table if not exists questions (
                          check (ai_status in ('pendiente', 'rechazada', 'aprobada')),
   ai_relevance_score  numeric,
   mostrada_en_pantalla boolean not null default false,
+  preseleccionada     boolean not null default false,
+  mostrada_al_ponente boolean not null default false,
   created_at          timestamptz not null default now()
 );
 
 create index if not exists questions_conference_id_idx on questions (conference_id);
 create index if not exists questions_attendee_id_idx on questions (attendee_id);
 create index if not exists questions_ai_status_idx on questions (ai_status);
+
+-- Invariante del Panel de Expertos: como máximo una pregunta "al aire"
+-- (mostrada_al_ponente = true) a la vez por conferencia. Mismo patrón que
+-- conferences_una_activa_idx más arriba — ver supabase/panel_expertos.sql
+-- para el detalle completo del razonamiento.
+create unique index if not exists questions_una_al_ponente_por_conferencia_idx
+  on questions (conference_id)
+  where mostrada_al_ponente = true;
 
 -- =============================================================================
 -- 2. FUNCIONES AUXILIARES PARA RLS
@@ -607,3 +617,166 @@ as $$
 $$;
 
 grant execute on function pregunta_pantalla_por_id(uuid) to anon, authenticated;
+
+-- =============================================================================
+-- 9. FUNCIONES: Panel de Expertos (preselección colaborativa y selección
+--    "al aire" para el ponente)
+--
+-- Mismo patrón que la sección 8: SECURITY DEFINER, JOIN a
+-- attendees/organizations puertas adentro, sin requerir GRANT directo sobre
+-- esas tablas para "anon". Ver supabase/panel_expertos.sql para el detalle
+-- completo del razonamiento y del invariante de "una sola al aire" que
+-- garantiza questions_una_al_ponente_por_conferencia_idx (sección 1).
+-- =============================================================================
+
+create or replace function preguntas_panel_estrategicas(p_conference_id uuid)
+returns table (
+  id                  uuid,
+  texto               text,
+  created_at          timestamptz,
+  nombre              text,
+  nombre_organizacion text,
+  ai_relevance_score  numeric,
+  preseleccionada     boolean,
+  mostrada_al_ponente boolean
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+    q.id, q.texto, q.created_at,
+    a.nombre, o.nombre,
+    q.ai_relevance_score, q.preseleccionada, q.mostrada_al_ponente
+  from questions q
+  join attendees a on a.id = q.attendee_id
+  join organizations o on o.id = a.organization_id
+  where q.conference_id = p_conference_id
+    and q.ai_status = 'aprobada'
+    and o.es_estrategica = true
+  order by q.ai_relevance_score desc;
+$$;
+
+grant execute on function preguntas_panel_estrategicas(uuid) to anon, authenticated;
+
+create or replace function preguntas_panel_respaldo(p_conference_id uuid)
+returns table (
+  id                  uuid,
+  texto               text,
+  created_at          timestamptz,
+  nombre              text,
+  nombre_organizacion text,
+  ai_relevance_score  numeric,
+  preseleccionada     boolean,
+  mostrada_al_ponente boolean
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+    q.id, q.texto, q.created_at,
+    a.nombre, o.nombre,
+    q.ai_relevance_score, q.preseleccionada, q.mostrada_al_ponente
+  from questions q
+  join attendees a on a.id = q.attendee_id
+  join organizations o on o.id = a.organization_id
+  where q.conference_id = p_conference_id
+    and q.ai_status = 'aprobada'
+    and o.es_estrategica = false
+  order by q.ai_relevance_score desc;
+$$;
+
+grant execute on function preguntas_panel_respaldo(uuid) to anon, authenticated;
+
+create or replace function pregunta_al_ponente_actual(p_conference_id uuid)
+returns table (
+  id         uuid,
+  texto      text,
+  created_at timestamptz,
+  nombre     text
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select q.id, q.texto, q.created_at, a.nombre
+  from questions q
+  join attendees a on a.id = q.attendee_id
+  where q.conference_id = p_conference_id
+    and q.mostrada_al_ponente = true
+  limit 1;
+$$;
+
+grant execute on function pregunta_al_ponente_actual(uuid) to anon, authenticated;
+
+-- Swap atómico de "pregunta al aire" — mismo patrón que
+-- activar_conferencia() (sección 5): el índice único parcial
+-- questions_una_al_ponente_por_conferencia_idx (sección 1) es la garantía
+-- real del invariante; esta función es la forma correcta de respetarlo al
+-- cambiar cuál pregunta está al aire. Ver supabase/panel_expertos.sql.
+create or replace function elegir_pregunta_al_ponente(p_question_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_conference_id uuid;
+  v_ai_status     text;
+begin
+  select conference_id, ai_status
+    into v_conference_id, v_ai_status
+    from questions
+    where id = p_question_id;
+
+  if not found then
+    raise exception 'La pregunta % no existe.', p_question_id;
+  end if;
+
+  if v_ai_status <> 'aprobada' then
+    raise exception 'La pregunta % no está aprobada (ai_status = %).', p_question_id, v_ai_status;
+  end if;
+
+  update questions
+    set mostrada_al_ponente = false
+    where conference_id = v_conference_id
+      and id <> p_question_id
+      and mostrada_al_ponente = true;
+
+  update questions
+    set mostrada_al_ponente = true
+    where id = p_question_id;
+end;
+$$;
+
+grant execute on function elegir_pregunta_al_ponente(uuid) to anon, authenticated;
+
+-- Invierte "preseleccionada" y devuelve el nuevo valor, sin que el
+-- frontend necesite conocer el estado actual de antemano.
+create or replace function togglear_preseleccion(p_question_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_nuevo_valor boolean;
+begin
+  update questions
+    set preseleccionada = not preseleccionada
+    where id = p_question_id
+    returning preseleccionada into v_nuevo_valor;
+
+  if not found then
+    raise exception 'La pregunta % no existe.', p_question_id;
+  end if;
+
+  return v_nuevo_valor;
+end;
+$$;
+
+grant execute on function togglear_preseleccion(uuid) to anon, authenticated;
