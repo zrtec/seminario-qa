@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { CerrarSesionButton } from "@/components/CerrarSesionButton";
 
 type Conference = {
   id: string;
@@ -101,6 +102,15 @@ function PreguntaFila({
 }
 
 export default function PanelPage() {
+  // Cliente SSR (cookies), NO el plano de lib/supabase.ts: los RPC de acá
+  // abajo (preguntas_panel_*, togglear_preseleccion,
+  // elegir_pregunta_al_ponente) van a requerir sesión de staff a nivel de
+  // Postgres (is_staff()) — ver supabase/endurecer_permisos_staff.sql. El
+  // cliente plano nunca lleva el JWT del login (sesión en localStorage vs.
+  // cookies, storages separados), así que con él estas llamadas
+  // funcionarían siempre como "anon" sin importar si hay sesión iniciada.
+  const supabase = useMemo(() => createClient(), []);
+
   const [conferences, setConferences] = useState<Conference[]>([]);
   const [conferenceId, setConferenceId] = useState<string | null>(null);
   const [cargandoConferences, setCargandoConferences] = useState(true);
@@ -113,9 +123,9 @@ export default function PanelPage() {
 
   const [procesandoId, setProcesandoId] = useState<string | null>(null);
 
-  // Carga inicial de conferencias, resuelta vía el mismo endpoint que ya usa
-  // /admin (getSupabaseAdmin(), sin filtro de "activa") — el panel necesita
-  // listar todas para el selector, y "anon" no tiene SELECT directo sobre
+  // Carga inicial de conferencias vía /api/staff/conferences (admin O
+  // panelista, ver lib/auth/require-admin.ts): el panel necesita listar
+  // todas para el selector, y "anon" no tiene SELECT directo sobre
   // conferences inactivas (ver conferences_select_publico_activas en
   // schema.sql). Por defecto selecciona la activa, si hay una.
   useEffect(() => {
@@ -123,7 +133,7 @@ export default function PanelPage() {
       setCargandoConferences(true);
       setErrorConferences(null);
       try {
-        const res = await fetch("/api/admin/conferences");
+        const res = await fetch("/api/staff/conferences");
         const body = await res.json();
         if (!res.ok) throw new Error(body.error ?? "Error al cargar conferencias.");
         const lista: Conference[] = body.data ?? [];
@@ -155,7 +165,7 @@ export default function PanelPage() {
     } finally {
       setCargandoPreguntas(false);
     }
-  }, []);
+  }, [supabase]);
 
   // Al cambiar de conferencia: carga inicial + suscripción Realtime. Ante
   // cualquier cambio en "questions" de esta conferencia (nueva aprobada,
@@ -184,11 +194,10 @@ export default function PanelPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conferenceId, cargarPreguntas]);
+  }, [conferenceId, cargarPreguntas, supabase]);
 
-  // Llama la función SECURITY DEFINER directo desde el cliente (anon key):
-  // ya está otorgado GRANT EXECUTE a "anon" en supabase/panel_expertos.sql,
-  // mismo criterio que preguntas_pantalla()/buscar_asistente(). No hace
+  // Llama la función SECURITY DEFINER con la sesión de staff (requiere
+  // is_staff() desde supabase/endurecer_permisos_staff.sql). No hace
   // falta actualizar el estado local a mano: el propio UPDATE dispara el
   // evento de Realtime que ya está escuchado arriba, y ese refetch alcanza
   // también a este mismo cliente.
@@ -227,11 +236,10 @@ export default function PanelPage() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 p-6 sm:p-8">
       <div>
-        <h1 className="text-3xl font-semibold">Panel de expertos</h1>
-        <p className="mt-1 text-sm text-amber-600">
-          ⚠️ Página temporal sin autenticación. El acceso de panelista real se agrega en un paso
-          posterior.
-        </p>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-semibold">Panel de expertos</h1>
+          <CerrarSesionButton />
+        </div>
       </div>
 
       <section className="flex flex-col gap-2">

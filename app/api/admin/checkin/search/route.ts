@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 // Los filtros combinados de PostgREST (.or()) usan "," para separar
 // condiciones y "()" para agrupar; si el término de búsqueda trae esos
@@ -10,10 +11,10 @@ function sanitizarTermino(termino: string) {
   return termino.replace(/[,()]/g, "").trim();
 }
 
-// TEMPORAL: sin autenticación todavía, este endpoint no verifica que quien
-// llama sea admin/staff. Cuando se agregue Supabase Auth, hay que validar
-// la sesión/rol acá antes de usar supabaseAdmin.
 export async function GET(request: Request) {
+  const noAutorizado = await requireAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const { searchParams } = new URL(request.url);
   const q = sanitizarTermino(searchParams.get("q") ?? "");
 

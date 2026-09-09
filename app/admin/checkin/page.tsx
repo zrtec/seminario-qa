@@ -187,9 +187,6 @@ export default function CheckinAdminPage() {
             Volver a Conferencias
           </Link>
         </div>
-        <p className="mt-1 text-sm text-amber-600">
-          ⚠️ Página temporal sin autenticación. El acceso de admin real se agrega en un paso posterior.
-        </p>
       </div>
 
       {error && (

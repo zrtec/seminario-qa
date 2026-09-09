@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 const EXTENSIONES_PERMITIDAS = ["pdf", "ppt", "pptx"] as const;
 const BUCKET = "presentaciones";
@@ -9,13 +10,14 @@ function extensionDe(nombreArchivo: string): string {
   return partes.length > 1 ? partes.pop()!.toLowerCase() : "";
 }
 
-// TEMPORAL: sin autenticación todavía, este endpoint no verifica que quien
-// llama sea admin (igual que el resto de app/api/admin/**). La subida se
-// hace acá, server-side con getSupabaseAdmin() (service_role), en vez de
-// directo desde el navegador con la anon key, para no tener que abrir el
-// bucket "presentaciones" a INSERT público mientras no exista Supabase Auth
-// para staff. Ver supabase/storage_policies.sql.
+// La subida se hace acá, server-side con getSupabaseAdmin() (service_role),
+// en vez de directo desde el navegador con la anon key, para no tener que
+// abrir el bucket "presentaciones" a INSERT público. Ver
+// supabase/storage_policies.sql.
 export async function POST(request: Request) {
+  const noAutorizado = await requireAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const formData = await request.formData();
   const archivo = formData.get("file");
   const qrSlug = formData.get("qr_slug");

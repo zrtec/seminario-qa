@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
-// TEMPORAL: sin autenticación todavía, este endpoint no verifica que quien
-// llama sea admin. Cuando se agregue Supabase Auth para staff, hay que
-// validar la sesión/rol acá antes de usar supabaseAdmin.
 export async function GET() {
+  const noAutorizado = await requireAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const { data, error } = await getSupabaseAdmin()
     .from("attendees")
     .select("id, nombre, email, status, access_code, organization_id, organizations(nombre)")

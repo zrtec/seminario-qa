@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 const SELECT_ASISTENTE =
   "id, nombre, email, status, access_code, organization_id, organizations(nombre)";
 
-// TEMPORAL: sin autenticación todavía, este endpoint no verifica que quien
-// llama sea admin/staff. Cuando se agregue Supabase Auth, hay que validar
-// la sesión/rol acá antes de usar supabaseAdmin.
 export async function POST(request: Request) {
+  const noAutorizado = await requireAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const body = await request.json();
   const attendeeId = body.attendee_id;
   if (typeof attendeeId !== "string" || attendeeId === "") {

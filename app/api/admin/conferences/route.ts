@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 const CAMPOS_REQUERIDOS = ["titulo", "categoria", "ponente", "resumen", "qr_slug"] as const;
 
@@ -12,10 +13,10 @@ function validarBody(body: Record<string, unknown>) {
   return null;
 }
 
-// TEMPORAL: sin autenticación todavía, este endpoint no verifica que quien
-// llama sea admin. Cuando se agregue Supabase Auth para staff, hay que
-// validar la sesión/rol acá antes de usar supabaseAdmin.
 export async function GET() {
+  const noAutorizado = await requireAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const { data, error } = await getSupabaseAdmin()
     .from("conferences")
     .select("*")
@@ -28,6 +29,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const noAutorizado = await requireAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const body = await request.json();
   const errorValidacion = validarBody(body);
   if (errorValidacion) {

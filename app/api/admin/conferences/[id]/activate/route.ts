@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 type Params = { params: Promise<{ id: string }> };
 
-// TEMPORAL: sin autenticación todavía (igual que el resto de app/api/admin/**).
-//
 // Activar una conferencia es una operación EXCLUSIVA: como máximo una
 // conferencia activa a la vez en todo el sistema. Esa regla la garantiza de
 // verdad un índice único parcial en Postgres (conferences_una_activa_idx,
@@ -15,6 +14,9 @@ type Params = { params: Promise<{ id: string }> };
 // transacción atómica, en vez de hacer dos updates sueltos desde acá que
 // podrían competir con otra request concurrente.
 export async function POST(_request: Request, { params }: Params) {
+  const noAutorizado = await requireAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const { id } = await params;
 
   const { error } = await getSupabaseAdmin().rpc("activar_conferencia", {

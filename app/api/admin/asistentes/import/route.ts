@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 type AsistenteImport = {
   nombre: string;
@@ -24,15 +25,14 @@ function validarBody(body: unknown): AsistenteImport[] | null {
   return body as AsistenteImport[];
 }
 
-// TEMPORAL: sin autenticación todavía, este endpoint no verifica que quien
-// llama sea admin. Cuando se agregue Supabase Auth para staff, hay que
-// validar la sesión/rol acá antes de usar supabaseAdmin.
-//
 // La validación real de cada fila (organización existente, email no
 // duplicado, generación de access_code sin colisión) y la atomicidad de la
 // importación las hace la función importar_asistentes() en Postgres — ver
 // supabase/importar_asistentes_csv.sql. Este handler es solo el puente.
 export async function POST(request: Request) {
+  const noAutorizado = await requireAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const body = await request.json();
   const asistentes = validarBody(body);
   if (!asistentes) {

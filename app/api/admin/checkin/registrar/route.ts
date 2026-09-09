@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
-// TEMPORAL: sin autenticación todavía, este endpoint no verifica que quien
-// llama sea admin/staff. Cuando se agregue Supabase Auth, hay que validar
-// la sesión/rol acá antes de usar supabaseAdmin.
-//
 // La validación (organización existente, email no duplicado) y la
 // generación del access_code sin colisión las hace, atómicamente, la
 // función checkin_registrar_asistente() en Postgres — ver
 // supabase/checkin_registrar_asistente.sql. Este handler es solo el puente.
 export async function POST(request: Request) {
+  const noAutorizado = await requireAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const body = await request.json();
   const { nombre, email, organization_id } = body;
 

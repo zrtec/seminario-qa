@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 const CAMPOS_REQUERIDOS = ["titulo", "categoria", "ponente", "resumen", "qr_slug"] as const;
 
@@ -14,10 +15,10 @@ function validarBody(body: Record<string, unknown>) {
 
 type Params = { params: Promise<{ id: string }> };
 
-// TEMPORAL: sin autenticación todavía, este endpoint no verifica que quien
-// llama sea admin. Cuando se agregue Supabase Auth para staff, hay que
-// validar la sesión/rol acá antes de usar supabaseAdmin.
 export async function PATCH(request: Request, { params }: Params) {
+  const noAutorizado = await requireAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const { id } = await params;
   const body = await request.json();
   const errorValidacion = validarBody(body);
@@ -51,6 +52,9 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
+  const noAutorizado = await requireAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const { id } = await params;
 
   const { error } = await getSupabaseAdmin().from("conferences").delete().eq("id", id);
