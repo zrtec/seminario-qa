@@ -1,8 +1,8 @@
 # Seminario Q&A — Documento de Referencia del Proyecto
 
-**Última actualización:** 3 de septiembre de 2026
+**Última actualización:** 8 de septiembre de 2026
 
-**Estado del proyecto:** Pasos 1–8 completados y probados (Supabase, Next.js base, módulo Admin completo con conferencias/organizaciones/asistentes/check-in, formulario público de preguntas, Edge Function de moderación IA). Pendiente: pantalla kiosko (Paso 9), panel de expertos (Paso 10), autenticación real de staff, pruebas integrales y deploy.
+**Estado del proyecto:** Pasos 1–11 completados y probados: Supabase, Next.js base, módulo Admin completo (conferencias/organizaciones/asistentes/check-in), formulario público de preguntas, Edge Function de moderación IA, pantalla kiosko, panel de expertos con selección al aire para el ponente, y autenticación real de staff (login + protección de rutas + permisos endurecidos a nivel de base de datos). Pendiente: pruebas integrales, rate limiting, y deploy a Vercel.
 
 ---
 
@@ -16,8 +16,8 @@ Aplicación para gestionar preguntas y comentarios en vivo durante un seminario 
 
 | Rol | Acceso | Función |
 |---|---|---|
-| **Admin (root)** | Login (Supabase Auth) — **aún no implementado, ver sección 11** | CRUD de conferencias (con activación exclusiva: solo una activa a la vez, protegido a nivel de base de datos), subida opcional de presentación a Storage, CRUD de organizaciones (marcadas como estratégicas o no), carga masiva de asistentes vía CSV, check-in de asistentes el día del evento, acceso a la pantalla pública/kiosko |
-| **Panelista** | Login (Supabase Auth, rol limitado) | Solo lectura, en tablet, de preguntas filtradas por organización estratégica y ordenadas por relevancia IA |
+| **Admin (root)** | Login real (Supabase Auth + `@supabase/ssr`), rol verificado contra `staff_users` | CRUD de conferencias (con activación exclusiva: solo una activa a la vez, protegido a nivel de base de datos), subida opcional de presentación a Storage, CRUD de organizaciones (marcadas como estratégicas o no), carga masiva de asistentes vía CSV, check-in de asistentes el día del evento, acceso a la pantalla pública/kiosko y a la Pantalla Principal |
+| **Panelista** | Login real (Supabase Auth), rol verificado contra `staff_users` | Acceso a `/panel`: ve las preguntas filtradas por organización estratégica y ordenadas por relevancia IA, puede preseleccionar preguntas de forma colaborativa (visible para todos los panelistas en tiempo real) y elegir la pregunta que se muestra al ponente |
 | **Asistente** | Sin login | Precargado (nombre, email, organización) o se registra en el check-in; recibe un código de acceso corto al confirmar asistencia; usa email o código para identificarse al preguntar |
 
 ---
@@ -111,14 +111,82 @@ El enfoque original era un Database Webhook configurado desde el dashboard de Su
 
 ### 3.3 Pantalla pública / kiosko
 
-- Es una **ruta protegida del Admin** (no una vista pública independiente): `/admin/pantalla/[qr_slug]`.
-- El Admin la abre y la pone en modo pantalla completa en el dispositivo conectado al tótem.
-- Diseño **vertical (portrait)**, responsivo.
-- Parte superior: QR grande de la conferencia activa.
-- Parte inferior: preguntas aprobadas apareciendo una por una en formato animado (cintillo / fade-in / slide-in).
-- El Admin puede ocultar manualmente una pregunta si la IA se equivoca (salvaguarda).
+- Ruta: `/admin/pantalla/[qr_slug]` — **pública, sin login**, exceptuada explícitamente en `proxy.ts` (aunque cuelga de `/admin`, no requiere sesión: es la pantalla física del tótem del evento).
+- Diseño **vertical (portrait)**, responsivo. Tercio superior: título/ponente + QR grande (generado con `qrcode.react`, apuntando a `/preguntar/[qr_slug]` usando `window.location.origin`, nunca localhost hardcodeado). Dos tercios inferiores: preguntas aprobadas mostradas **una a la vez**, ciclando cada 8s con animación fade-in/slide-in, mostrando texto + nombre del asistente (nunca su email).
+- Botón discreto de pantalla completa (Fullscreen API).
+- Tiempo real vía Supabase Realtime: al aprobarse una pregunta nueva, se suma al ciclo sin recargar.
+- Lectura de datos a través de funciones `SECURITY DEFINER` (`preguntas_pantalla()`, `pregunta_pantalla_por_id()`) en vez de un `SELECT` con embed directo a `attendees` — necesario porque `anon` no tiene `GRANT SELECT` sobre esa tabla (contiene `email`/`access_code`); el embed fallaba con `permission denied` de forma silenciosa hasta que se detectó revisando el `error` de la consulta.
+- No implementado: ocultar manualmente una pregunta desde esta pantalla (quedó como posible mejora futura, no bloqueante).
 
----
+### 3.4 Panel de expertos y Pantalla Principal (selección para el ponente)
+
+Requerimiento de negocio: 2 o más panelistas ven el mismo panel simultáneamente (cada uno en su tablet/laptop) y necesitan coordinarse **sin poder hablar entre sí** mientras llegan preguntas en vivo.
+
+```
+Panelista abre /panel (requiere sesión, rol admin o panelista)
+        ↓
+Ve 2 listados en tiempo real, ambos vía funciones SECURITY DEFINER:
+   a) preguntas_panel_estrategicas(conference_id): SOLO preguntas de
+      asistentes de organizaciones estratégicas, ordenadas por
+      ai_relevance_score descendente
+   b) preguntas_panel_respaldo(conference_id): el resto de las preguntas
+      aprobadas (organizaciones no estratégicas), mismo orden — para usar
+      si ningún representante estratégico ha preguntado
+        ↓
+Cualquier panelista puede "preseleccionar" una pregunta (togglear_preseleccion):
+   marca colaborativa sin dueño/autoría, visible en tiempo real para todos
+   los panelistas — ayuda a coordinarse sobre cuáles les interesan más
+        ↓
+Cuando le toca el turno a un panelista, "elige" una pregunta para el
+   ponente (elegir_pregunta_al_ponente): swap ATÓMICO — apaga
+   mostrada_al_ponente en cualquier otra pregunta de la misma conferencia
+   y la prende en la elegida, garantizado por un índice único parcial
+   (solo una pregunta "al aire" por conferencia a la vez, mismo patrón
+   que conferences.activa)
+        ↓
+La Pantalla Principal (/admin/pantalla-principal/[qr_slug], también
+   pública/sin login, para que la vea el ponente) se actualiza sola vía
+   Realtime + pregunta_al_ponente_actual(conference_id): muestra SOLO
+   título de la conferencia, ponente, y la pregunta actual — tipografía
+   grande (dinámica según longitud del texto, entre text-4xl y text-8xl,
+   para que preguntas largas no se desborden de la pantalla)
+```
+
+**Diseño de acceso a las funciones del panel (decisión explícita):** `preguntas_panel_estrategicas`, `preguntas_panel_respaldo`, `elegir_pregunta_al_ponente` y `togglear_preseleccion` requieren sesión de staff — el `GRANT EXECUTE` está restringido a `authenticated` (revocado de `anon` y de `public`, ya que Postgres otorga `EXECUTE` a `PUBLIC` por defecto al crear una función) y además cada función valida `is_staff()` puertas adentro. Este doble control es intencional: el `GRANT` decide quién puede *intentar* llamar la función, pero Supabase autogenera un endpoint REST por cada función, así que sin el chequeo interno cualquiera con la `anon key` (pública, va en el bundle del navegador) podría invocarla directo sin pasar por `/panel` ni por el proxy. Las funciones de lectura devuelven 0 filas si no eres staff (silencioso); las de escritura lanzan excepción (ruidoso, ya que una escritura fallida silenciosa es más peligrosa de pasar desapercibida).
+
+En cambio, `preguntas_pantalla`, `pregunta_pantalla_por_id` y `pregunta_al_ponente_actual` **siguen abiertas a `anon`** deliberadamente: son las pantallas físicas del evento (kiosko, podio), sin ningún staff logueado del otro lado.
+
+### 3.5 Autenticación de staff
+
+```
+Admin crea manualmente cada usuario de staff en Supabase Auth
+   (Authentication → Users), y lo vincula a staff_users con su
+   rol (admin/panelista) mediante un INSERT manual (ver plantilla
+   en supabase/vincular_staff.sql) — no hay alta automática ni
+   auto-registro, es una decisión de negocio que requiere criterio humano
+        ↓
+Staff inicia sesión en /login (email + contraseña, signInWithPassword())
+        ↓
+Redirección según rol (consultado en staff_users): admin → /admin,
+   panelista → /panel; si el usuario no está vinculado en staff_users,
+   mensaje claro ("Tu cuenta no está vinculada como staff...")
+        ↓
+proxy.ts (reemplaza a middleware.ts en Next.js 16) refresca la sesión
+   en cada request y autoriza el acceso a rutas protegidas:
+   - /admin/** (excepto /admin/pantalla/* y /admin/pantalla-principal/*,
+     que son públicas) → requiere rol admin
+   - /panel → requiere rol admin O panelista
+   - Sin sesión → redirige a /login; con sesión pero rol incorrecto →
+     redirige a su propia área, nunca deja pasar "por las dudas"
+        ↓
+Los route handlers de app/api/admin/** (que usan service_role,
+   bypasean RLS por diseño) tienen su propio guard interno
+   (requireAdmin()/requireStaff() en lib/auth/require-admin.ts),
+   ya que el proxy protege páginas pero no automáticamente cada
+   endpoint si se llamara directo
+```
+
+**Nota de arquitectura de clientes:** el proyecto usa 2 clientes de Supabase distintos y deliberadamente separados: `lib/supabase.ts` (cliente plano `@supabase/supabase-js`, sesión en `localStorage`, usado por rutas públicas sin login: `/preguntar`, pantallas de kiosko/principal) y `lib/supabase/client.ts` + `lib/supabase/server.ts` (cliente SSR de `@supabase/ssr`, sesión en cookies, usado por `/login`, `/admin`, `/panel`). Son dos storages de sesión independientes — un componente que necesite leer la sesión del usuario logueado debe usar el cliente SSR, nunca el plano (un descuido en este sentido causó que `/panel` funcionara para lectura pero fallara silenciosamente al verificar `is_staff()`, hasta que se corrigió).
 
 ## 4. Modelo de datos (Supabase / Postgres)
 
@@ -126,18 +194,30 @@ El enfoque original era un Database Webhook configurado desde el dashboard de Su
 |---|---|
 | `organizations` | id (uuid), nombre, es_estrategica (bool) |
 | `attendees` | id (uuid), nombre, email, access_code (único, autogenerado, 6 caracteres alfanumérico), organization_id, status ("precargado" / "presente") |
-| `staff_users` | id, vinculado a Supabase Auth, rol ("admin" / "panelista") — **tabla creada, autenticación real aún no implementada** |
+| `staff_users` | id (uuid, = id de `auth.users`), rol ("admin" / "panelista") — vinculación manual, ver sección 3.5 |
 | `conferences` | id, título, categoría, ponente, resumen, presentacion_url (archivo opcional en Supabase Storage, bucket `presentaciones`), qr_slug (único), activa (bool, con índice único parcial que garantiza solo una activa a la vez a nivel de base de datos) |
-| `questions` | id, texto, conference_id, attendee_id, ai_status ("pendiente" / "rechazada" / "aprobada"), ai_relevance_score, mostrada_en_pantalla (bool), created_at |
+| `questions` | id, texto, conference_id, attendee_id, ai_status ("pendiente" / "rechazada" / "aprobada"), ai_relevance_score, mostrada_en_pantalla (bool), **preseleccionada (bool, default false)**, **mostrada_al_ponente (bool, default false, con índice único parcial por conference_id — solo una "al aire" a la vez)**, created_at |
 
 **Seguridad (RLS):** habilitado por defecto en todas las tablas, con `GRANT`/`REVOKE` explícitos a nivel de tabla además de las políticas RLS (ambas capas son necesarias en Postgres — RLS sin `GRANT` sigue bloqueando, y `service_role` también necesita `GRANT` explícito pese a bypassear RLS). Políticas explícitas:
 - `attendees`: el formulario público puede leer (para autocompletar por email/código) pero no modificar datos sensibles.
-- `questions`: el formulario público solo puede insertar; lectura de preguntas aprobadas es pública (para la pantalla); panel de expertos requiere sesión de panelista/admin.
+- `questions`: el formulario público solo puede insertar; lectura de preguntas aprobadas es pública (para la pantalla); panel de expertos requiere sesión de staff real.
 - `conferences`, `organizations`, `staff_users`: solo admin puede escribir; lectura pública limitada a campos necesarios (ej. título/qr_slug de conferencia activa).
 
-**Patrón de escritura implementado:** todas las escrituras desde el módulo Admin (crear/editar/eliminar conferencias, organizaciones, importar asistentes, check-in) pasan por Route Handlers de Next.js (`app/api/admin/**`) que usan la `service_role key` **solo del lado del servidor** (`lib/supabase-admin.ts`), nunca expuesta al navegador. Las lecturas y la subida de presentaciones a Storage se hacen directo desde el cliente con la `anon`/`publishable key`, protegidas por RLS. Este patrón se mantuvo consistente en todo el proyecto, incluida la Edge Function de moderación IA.
+**Funciones `SECURITY DEFINER` (patrón central de este proyecto):** en vez de dar `GRANT SELECT` directo sobre tablas con datos sensibles (`attendees` tiene email/access_code; el JOIN con `organizations` expone a qué empresa pertenece cada asistente), se usan funciones que hacen el JOIN puertas adentro y devuelven solo las columnas necesarias:
 
-**Nota de seguridad recurrente:** durante el desarrollo, un `REVOKE ALL ... FROM PUBLIC` (probablemente parte del script de seguridad inicial) quitó sin querer privilegios también a `service_role`, ya que en Postgres todo rol es miembro implícito de `PUBLIC`. Se resolvió otorgando `GRANT` explícito a `service_role` en las 5 tablas (`supabase/grants_service_role.sql`). Tenerlo en cuenta si en el futuro se agregan más tablas: siempre otorgar `GRANT` explícito tanto a `anon`/`authenticated` como a `service_role`, no asumir que este último "ya tiene todo".
+| Función | Acceso | Propósito |
+|---|---|---|
+| `buscar_asistente()` | público (`anon`) | Formulario de preguntas: busca por email/código |
+| `preguntas_pantalla()`, `pregunta_pantalla_por_id()` | público (`anon`) | Pantalla kiosko |
+| `pregunta_al_ponente_actual()` | público (`anon`) | Pantalla Principal (podio del ponente) |
+| `preguntas_panel_estrategicas()`, `preguntas_panel_respaldo()` | solo staff (`authenticated` + `is_staff()` interno) | Listados del Panel de Expertos |
+| `elegir_pregunta_al_ponente()`, `togglear_preseleccion()` | solo staff (`authenticated` + `is_staff()` interno) | Escrituras del Panel de Expertos (swap atómico y toggle colaborativo) |
+| `activar_conferencia()` | solo admin (vía route handler con `service_role`) | Swap atómico de conferencia activa |
+| `importar_asistentes()` | solo admin (vía route handler con `service_role`) | Importación transaccional de CSV |
+
+**Patrón de escritura implementado:** las escrituras del módulo Admin (crear/editar/eliminar conferencias, organizaciones, importar asistentes, check-in) pasan por Route Handlers de Next.js (`app/api/admin/**`) que usan la `service_role key` **solo del lado del servidor** (`lib/supabase-admin.ts`), con guard de sesión+rol interno (`requireAdmin()`). Las escrituras del Panel de Expertos, en cambio, llaman los RPC `SECURITY DEFINER` **directo desde el cliente** (con el cliente SSR autenticado) sin pasar por route handler — decisión deliberada: el borde de seguridad ya está resuelto dentro de la función de Postgres (`is_staff()` + `GRANT` restringido), así que un proxy intermedio no movería el límite de confianza real, solo agregaría una capa sin beneficio. El proxy de `service_role` en `/admin` existe por una razón distinta: esas políticas RLS exigen `is_admin()` contra tablas con reglas más estrictas, y el patrón se mantuvo ahí por necesidad funcional, no como principio general de "todo pasa por backend".
+
+**Nota de seguridad recurrente:** durante el desarrollo, un `REVOKE ALL ... FROM PUBLIC` (probablemente parte del script de seguridad inicial) quitó sin querer privilegios también a `service_role`, ya que en Postgres todo rol es miembro implícito de `PUBLIC`. Se resolvió otorgando `GRANT` explícito a `service_role` en las 5 tablas (`supabase/grants_service_role.sql`). Lo mismo aplica a funciones: Postgres otorga `EXECUTE` sobre una función nueva a `PUBLIC` por defecto, así que cerrar el acceso requiere `REVOKE ... FROM anon, public` explícito, no alcanza con no otorgarlo a `anon` si nunca se revocó de `PUBLIC`.
 
 ---
 
@@ -145,12 +225,14 @@ El enfoque original era un Database Webhook configurado desde el dashboard de Su
 
 | Ruta | Rol | Descripción | Estado |
 |---|---|---|---|
-| `/admin` | Admin | CRUD de conferencias (título, categoría, ponente, resumen, presentación opcional, qr_slug autogenerado editable, activación exclusiva) | ✅ Implementado (sin auth aún) |
-| `/admin/organizaciones` | Admin | CRUD de organizaciones, marcado de "estratégica", muestra el id (uuid) de cada una con botón copiar para usar en el CSV de asistentes | ✅ Implementado |
-| `/admin/asistentes` | Admin | Importación masiva vía CSV con vista previa validada (organization_id + organization_nombre cruzados), descarga de plantilla, listado de asistentes cargados | ✅ Implementado |
-| `/admin/checkin` | Admin | Búsqueda en vivo, confirmación de asistencia con despliegue del access_code, registro rápido de asistentes no precargados | ✅ Implementado |
-| `/admin/pantalla/[qr_slug]` | Admin | Vista kiosko: QR + cintillo de preguntas, expandible a pantalla completa, vertical/responsiva | ⏳ Pendiente (Paso 9) |
-| `/panel` | Panelista | Login + lista de preguntas filtradas (solo estratégicas) y ordenadas por relevancia | ⏳ Pendiente (Paso 10) |
+| `/login` | Público | Login de staff (email + contraseña), redirige según rol | ✅ Implementado |
+| `/admin` | Admin (protegido) | CRUD de conferencias (título, categoría, ponente, resumen, presentación opcional, qr_slug autogenerado editable, activación exclusiva) | ✅ Implementado |
+| `/admin/organizaciones` | Admin (protegido) | CRUD de organizaciones, marcado de "estratégica", muestra el id (uuid) de cada una con botón copiar para usar en el CSV de asistentes | ✅ Implementado |
+| `/admin/asistentes` | Admin (protegido) | Importación masiva vía CSV con vista previa validada (organization_id + organization_nombre cruzados), descarga de plantilla, listado de asistentes cargados | ✅ Implementado |
+| `/admin/checkin` | Admin (protegido) | Búsqueda en vivo, confirmación de asistencia con despliegue del access_code, registro rápido de asistentes no precargados | ✅ Implementado |
+| `/admin/pantalla/[qr_slug]` | Público (sin login, exceptuado del proxy) | Vista kiosko: QR + cintillo de preguntas, expandible a pantalla completa, vertical/responsiva, tiempo real | ✅ Implementado |
+| `/admin/pantalla-principal/[qr_slug]` | Público (sin login, exceptuado del proxy) | Pantalla para el ponente: título, ponente, y la pregunta actualmente "al aire", tipografía dinámica según longitud, tiempo real | ✅ Implementado |
+| `/panel` | Admin o Panelista (protegido) | 2 listados (estratégicas / respaldo) con preselección colaborativa y selección "al aire" para el ponente, todo en tiempo real | ✅ Implementado |
 | `/preguntar/[qr_slug]` | Asistente (público) | Formulario en 2 pasos: identificación (email o código) → pregunta con aviso de reglas de contenido, límite 500 caracteres | ✅ Implementado |
 
 ---
@@ -161,8 +243,10 @@ El enfoque original era un Database Webhook configurado desde el dashboard de Su
 |---|---|---|
 | Frontend + Backend | **Next.js (TypeScript)** | Un solo proyecto para todas las vistas |
 | Base de datos | **Supabase (Postgres)** | RLS activado en todas las tablas |
-| Tiempo real | **Supabase Realtime** | Para el cintillo de la pantalla y la lista del panel de expertos |
-| Autenticación | **Supabase Auth** | Roles: admin, panelista |
+| Tiempo real | **Supabase Realtime** | Cintillo de la pantalla kiosko, Pantalla Principal, y los 2 listados + estado colaborativo del Panel de Expertos; requiere activar cada tabla en Database → Publications |
+| Autenticación | **Supabase Auth** + `@supabase/ssr` | Roles: admin, panelista (tabla `staff_users`, alta manual); sesión en cookies vía cliente SSR, separado del cliente plano (`localStorage`) usado en rutas públicas |
+| Protección de rutas | **`proxy.ts`** (reemplaza a `middleware.ts` en Next.js 16) | Refresca sesión y autoriza acceso por rol en cada request; los route handlers de `/api/admin/**` tienen guard propio (`requireAdmin()`/`requireStaff()`) |
+| Generación de QR | **`qrcode.react`** | Renderizado como SVG en la pantalla kiosko |
 | Almacenamiento de archivos | **Supabase Storage** | Bucket para presentaciones (archivo opcional, de referencia) |
 | Moderación y ranking IA | **Gemini API** (modelo `gemini-3.5-flash-lite`), orquestada desde una **Supabase Edge Function** | Nunca se llama directamente desde el frontend (seguridad de API key); modelo configurable por secret `GEMINI_MODEL` sin redeploy |
 | Disparo de la moderación | **Trigger de Postgres + `pg_net`**, con secreto en **Supabase Vault** | Alternativa a Database Webhook (bloqueado por un bug de Supabase); ver sección 3.2 |
@@ -196,10 +280,11 @@ El enfoque original era un Database Webhook configurado desde el dashboard de Su
 | 3 | Módulo Admin: CRUD conferencias (con activación exclusiva y subida de presentación), CRUD organizaciones, carga CSV de asistentes, check-in en vivo | ✅ Completado |
 | 4 | Formulario de asistente (`/preguntar/[qr_slug]`) con identificación por email/código | ✅ Completado |
 | 5 | Edge Function de moderación + ranking con Gemini API (incluyó resolver: bug de Database Webhook, modelo deprecado, saturación 503, timeouts, prompt hardening) | ✅ Completado |
-| 6 | Pantalla kiosko (`/admin/pantalla/[qr_slug]`) con QR + cintillo animado en tiempo real | ⏳ Siguiente paso |
-| 7 | Panel de expertos (`/panel`) con filtro + orden por relevancia en tiempo real | ⏳ Pendiente |
-| 8 | Autenticación real de staff (admin/panelista) vía Supabase Auth — actualmente `/admin/*` no tiene login | ⏳ Pendiente |
-| 9 | Pruebas integrales, ajustes de UI, rate limiting, deploy a Vercel | ⏳ Pendiente |
+| 6 | Pantalla kiosko (`/admin/pantalla/[qr_slug]`) con QR + cintillo animado en tiempo real | ✅ Completado |
+| 7 | Panel de expertos (`/panel`) con preselección colaborativa, selección "al aire", y Pantalla Principal para el ponente | ✅ Completado |
+| 8 | Autenticación real de staff (Supabase Auth + `@supabase/ssr`, `proxy.ts`, guards en API, permisos SQL endurecidos) | ✅ Completado |
+| 9 | Pruebas integrales, rate limiting, ajustes finales de UI | ⏳ Siguiente paso |
+| 10 | Deploy a Vercel | ⏳ Pendiente |
 
 ---
 
@@ -229,16 +314,25 @@ La IA también debe:
 - **Modelos con `"thinking": true`** (como `gemini-3.6-flash`) pueden acercarse o superar timeouts ajustados para modelos simples — para esta tarea (clasificación + scoring corto) un modelo `-lite` sin thinking (`gemini-3.5-flash-lite`) resultó más rápido y estable.
 - **Prompt hacia LLMs con contenido de usuario**: siempre incluir una instrucción explícita de que el texto del usuario es contenido a evaluar, nunca instrucciones a seguir, para mitigar inyección de prompt.
 - **Reintentos con backoff**: implementados para 503/429/timeout (errores transitorios), sin reintentar errores de configuración (400/404) que no se resuelven reintentando. El timeout del trigger (`pg_net`) debe cubrir el peor caso de todos los reintentos sumados, no solo un intento.
+- **Realtime requiere activar la tabla en Publications**: Supabase movió esto de "Database → Replication" (que ahora es para réplicas de lectura externas) a **Database → Publications** — hay que agregar la tabla a la publicación `supabase_realtime` (vía UI o `alter publication supabase_realtime add table <tabla>;`) para que las suscripciones `supabase.channel(...)` reciban eventos.
+- **Server Components y errores silenciados**: si una consulta desestructura solo `{ data }` sin revisar `{ error }`, un `permission denied` se convierte silenciosamente en "no hay datos" (vía `?? []`) sin ningún indicio visual del problema real. Siempre loguear el `error`, incluso en consultas que "deberían funcionar".
+- **RLS/GRANT no cubre JOINs embebidos de PostgREST**: un `select "..., relacion:fk ( campo )"` requiere `GRANT SELECT` sobre la tabla relacionada, no solo sobre la tabla principal. Si esa tabla relacionada tiene RLS restrictivo a propósito (como `attendees`, que expone email/access_code), el JOIN falla — la solución consistente en este proyecto fue una función `SECURITY DEFINER` que hace el JOIN puertas adentro y expone solo las columnas necesarias, replicando el mismo patrón ya usado para `buscar_asistente()`.
+- **`middleware.ts` → `proxy.ts` en Next.js 16**: el archivo se renombró (y el export pasó de `middleware` a `proxy`), aunque la API de cookies (`getAll`/`setAll`) y el comportamiento general se mantienen idénticos a versiones anteriores.
+- **Dos clientes de Supabase, dos sesiones independientes**: el cliente plano (`@supabase/supabase-js`, sesión en `localStorage`) y el cliente SSR (`@supabase/ssr`, sesión en cookies) no comparten sesión entre sí. Un componente que necesita leer la sesión de un usuario logueado vía `/login` debe usar el cliente SSR — usar el cliente plano ahí resulta en una sesión "anon" silenciosa aunque el usuario esté logueado en el mismo navegador.
+- **`EXECUTE` sobre funciones se otorga a `PUBLIC` por defecto**: al crear una función en Postgres, el rol pseudo-`PUBLIC` recibe `EXECUTE` automáticamente (todo rol, incluido `anon`, es miembro implícito de `PUBLIC`). Restringir una función a `authenticated` requiere `REVOKE EXECUTE ... FROM anon, public`, no alcanza con simplemente no otorgar el `GRANT` a `anon`.
+- **Windows/Git Bash y comandos nativos**: comandos como `taskkill /PID <n> /F` fallan en Git Bash (MINGW64) porque convierte automáticamente `/PID` en una ruta de estilo Unix. Usar doble slash (`taskkill //PID <n> //F`) o correr el comando desde una terminal de Windows nativa (CMD/PowerShell).
 
 ---
 
 ## 11. Pendientes / decisiones a confirmar más adelante
 
-- Autenticación real de Supabase Auth para `/admin/*` y `/panel` (actualmente el módulo Admin es de acceso abierto, marcado explícitamente como temporal en el código)
 - Formato exacto del código de acceso (ya implementado: 6 caracteres alfanumérico en mayúsculas — confirmar si esto es definitivo)
-- Diseño visual definitivo de la pantalla kiosko (colores, tipografía, marca de la empresa)
-- Política de rate limiting para evitar spam de preguntas
+- Diseño visual definitivo de la pantalla kiosko y Pantalla Principal (colores, tipografía, marca de la empresa)
+- Política de rate limiting para evitar spam de preguntas (aún no implementada — pendiente antes del evento real)
 - Si se requiere exportar/analizar preguntas después del evento
 - Definir si cada conferencia puede tener presentación cargada o solo algunas
 - Revisar límites/costos reales de la cuenta de Gemini API antes del evento en vivo (volumen esperado de preguntas)
 - Considerar monitorear la tasa de preguntas que quedan en "pendiente" (fallos de moderación tras 3 reintentos) para revisión manual del admin
+- Opción de que el admin oculte manualmente una pregunta de la pantalla kiosko si la IA se equivoca (mencionado como salvaguarda deseable, no implementado)
+- Conectar el repositorio a GitHub (rama local ya renombrada de `master` a `main`, pendiente crear el remoto y hacer push)
+- Definir estrategia de invitación de staff a futuro si el equipo crece (hoy es 100% manual vía dashboard + SQL, ver sección 3.5)
