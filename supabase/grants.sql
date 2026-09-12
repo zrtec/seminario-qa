@@ -55,10 +55,15 @@ grant select, insert, update, delete on staff_users to authenticated;
 
 -- -----------------------------------------------------------------------------
 -- questions
--- Políticas: INSERT público (anon + authenticated) siempre en estado
--- "pendiente"; SELECT público (anon + authenticated) solo de aprobadas y
+-- Políticas: SELECT público (anon + authenticated) solo de aprobadas y
 -- mostradas en pantalla; SELECT completo + UPDATE/DELETE solo para staff/
 -- admin autenticado. anon nunca actualiza ni borra.
+--
+-- Sin GRANT insert para "anon": desde supabase/rate_limit_preguntas.sql, la
+-- única forma de insertar una pregunta como público es la función
+-- insertar_pregunta() (SECURITY DEFINER, hace cumplir el límite de 1
+-- pregunta cada 30s por attendee_id antes de insertar). Dejar "insert"
+-- abierto acá permitiría saltarse ese límite insertando directo por REST.
 -- -----------------------------------------------------------------------------
-grant select, insert on questions to anon;
+grant select on questions to anon;
 grant select, insert, update, delete on questions to authenticated;

@@ -1,9 +1,16 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/lib/supabase";
 
 const LIMITE_CARACTERES = 500;
+const COOLDOWN_SEGUNDOS = 30;
+
+// SQLSTATE inventado que insertar_pregunta() usa específicamente para la
+// excepción de rate limit (ver supabase/rate_limit_preguntas.sql) — se
+// compara por código, no por el texto del mensaje, para no depender de que
+// la redacción de la excepción en SQL no cambie nunca.
+const CODIGO_RATE_LIMIT = "RLIMT";
 
 type Asistente = {
   id: string;
@@ -25,6 +32,17 @@ export default function PreguntarForm({ conferenceId }: { conferenceId: string }
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+
+  // Mejora de UX, no la garantía real (esa vive en insertar_pregunta(), ver
+  // supabase/rate_limit_preguntas.sql): cuenta regresiva de 1s mientras
+  // cooldown > 0, para que la persona no tenga que descubrir el límite de
+  // 30s por prueba y error. Se reinicia solo si recarga la página.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   async function handleBuscar(e: FormEvent) {
     e.preventDefault();
@@ -77,19 +95,24 @@ export default function PreguntarForm({ conferenceId }: { conferenceId: string }
     setErrorEnvio(null);
 
     try {
-      const { error } = await supabase.from("questions").insert({
-        conference_id: conferenceId,
-        attendee_id: asistente.id,
-        texto: contenido,
-        ai_status: "pendiente",
-        mostrada_en_pantalla: false,
+      const { error } = await supabase.rpc("insertar_pregunta", {
+        p_attendee_id: asistente.id,
+        p_conference_id: conferenceId,
+        p_texto: contenido,
       });
       if (error) throw error;
 
       setTexto("");
       setPaso("enviada");
-    } catch {
-      setErrorEnvio("No pudimos enviar tu pregunta. Intentá de nuevo.");
+      setCooldown(COOLDOWN_SEGUNDOS);
+    } catch (err) {
+      const { code, message } = err as { code?: string; message?: string };
+      if (code === CODIGO_RATE_LIMIT && message) {
+        // Mensaje ya redactado para el usuario final por insertar_pregunta().
+        setErrorEnvio(message);
+      } else {
+        setErrorEnvio("No pudimos enviar tu pregunta. Intentá de nuevo.");
+      }
     } finally {
       setEnviando(false);
     }
@@ -217,10 +240,16 @@ export default function PreguntarForm({ conferenceId }: { conferenceId: string }
           <button
             type="button"
             onClick={handleEnviarOtra}
-            className="w-full rounded-xl bg-zinc-900 px-4 py-4 text-lg font-semibold text-white"
+            disabled={cooldown > 0}
+            className="w-full rounded-xl bg-zinc-900 px-4 py-4 text-lg font-semibold text-white disabled:opacity-50"
           >
             Enviar otra pregunta
           </button>
+          {cooldown > 0 && (
+            <p className="text-sm text-zinc-500">
+              Podrás enviar otra pregunta en {cooldown}s...
+            </p>
+          )}
         </section>
       )}
     </div>

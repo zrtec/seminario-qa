@@ -284,8 +284,14 @@ grant execute on function buscar_asistente(text) to anon, authenticated;
 
 -- -----------------------------------------------------------------------------
 -- questions
--- Público: puede INSERTAR preguntas (siempre en estado "pendiente", sin
--- marcar como mostrada, para que no pueda saltarse la moderación de IA).
+-- Público: NO inserta directo sobre la tabla (ver más abajo, sección de
+-- rate limiting) — inserta vía insertar_pregunta(), una función SECURITY
+-- DEFINER que además del INSERT (siempre en estado "pendiente", sin marcar
+-- como mostrada, para que no pueda saltarse la moderación de IA) hace
+-- cumplir el límite de 1 pregunta cada 30s por attendee_id. Esta política
+-- de INSERT queda entonces solo para "authenticated" (staff, ej. pruebas
+-- desde el SQL Editor); "anon" perdió el GRANT de tabla (ver
+-- supabase/grants.sql) así que igual nunca llegaría a evaluarla.
 -- Público: puede LEER solo preguntas aprobadas y marcadas para pantalla.
 -- Staff (admin/panelista) autenticado: lectura completa (el panel filtra por
 -- organización estratégica y ordena por relevancia en la propia consulta).
@@ -294,7 +300,7 @@ grant execute on function buscar_asistente(text) to anon, authenticated;
 -- -----------------------------------------------------------------------------
 create policy "questions_insert_publico"
   on questions for insert
-  to anon, authenticated
+  to authenticated
   with check (
     ai_status = 'pendiente'
     and mostrada_en_pantalla = false
@@ -780,3 +786,63 @@ end;
 $$;
 
 grant execute on function togglear_preseleccion(uuid) to anon, authenticated;
+
+-- =============================================================================
+-- 10. Rate limiting de preguntas: máximo 1 pregunta cada 30s por attendee_id
+--
+-- Ver supabase/rate_limit_preguntas.sql para el razonamiento completo. En
+-- síntesis: puede_enviar_pregunta() es un helper interno (sin GRANT propio,
+-- igual que is_staff()/is_admin()); insertar_pregunta() es la única forma
+-- de insertar una pregunta como público (anon perdió el GRANT de tabla
+-- sobre questions, ver supabase/grants.sql), hace el chequeo + el INSERT en
+-- la misma función y, para que ese chequeo sea real bajo concurrencia (dos
+-- requests del mismo attendee casi al mismo tiempo), toma un lock de fila
+-- sobre attendees antes de evaluar el límite.
+-- =============================================================================
+
+create or replace function puede_enviar_pregunta(p_attendee_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select not exists (
+    select 1 from questions
+    where attendee_id = p_attendee_id
+      and created_at > now() - interval '30 seconds'
+  );
+$$;
+
+create or replace function insertar_pregunta(
+  p_attendee_id uuid,
+  p_conference_id uuid,
+  p_texto text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  perform 1 from attendees where id = p_attendee_id for update;
+
+  if not found then
+    raise exception 'El asistente % no existe.', p_attendee_id;
+  end if;
+
+  if not puede_enviar_pregunta(p_attendee_id) then
+    raise exception 'Espera unos segundos antes de enviar otra pregunta.' using errcode = 'RLIMT';
+  end if;
+
+  insert into questions (conference_id, attendee_id, texto, ai_status, mostrada_en_pantalla)
+  values (p_conference_id, p_attendee_id, p_texto, 'pendiente', false)
+  returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+grant execute on function insertar_pregunta(uuid, uuid, text) to anon, authenticated;
