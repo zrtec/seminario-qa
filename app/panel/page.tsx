@@ -28,7 +28,7 @@ function formatearScore(score: PreguntaPanel["ai_relevance_score"]) {
   return `${Math.round(n)}/100`;
 }
 
-function PreguntaFila({
+function PreguntaCard({
   pregunta,
   procesando,
   onTogglePreseleccion,
@@ -40,24 +40,34 @@ function PreguntaFila({
   onElegir: (pregunta: PreguntaPanel) => void;
 }) {
   const score = formatearScore(pregunta.ai_relevance_score);
+  const preseleccionada = pregunta.preseleccionada;
 
   return (
     <li
-      className={`flex flex-col gap-4 rounded-2xl border-2 p-5 transition sm:flex-row sm:items-center sm:justify-between ${
-        pregunta.mostrada_al_ponente
-          ? "border-green-500 bg-green-50"
-          : pregunta.preseleccionada
-            ? "border-amber-300 bg-amber-50"
-            : "border-zinc-200 bg-white"
+      className={`flex flex-col gap-4 rounded-2xl border-2 p-5 transition sm:p-6 ${
+        preseleccionada ? "border-[#cfe0ea] bg-[#eef4f8]" : "border-zinc-200 bg-white"
       }`}
     >
-      <div className="min-w-0 flex-1">
+      <div className="flex flex-wrap items-center gap-2">
+        {score && (
+          <span className="rounded-full bg-[#22516C] px-3 py-1.5 text-sm font-bold text-white">
+            {score}
+          </span>
+        )}
         {pregunta.mostrada_al_ponente && (
-          <span className="mb-2 inline-block rounded-full bg-green-600 px-3 py-1 text-xs font-bold tracking-wide text-white uppercase">
+          <span className="inline-flex items-center gap-2 rounded-full bg-[#22516C] px-3 py-1.5 text-xs font-bold tracking-wide text-white uppercase">
+            <span
+              className="h-2 w-2 shrink-0 rounded-full"
+              style={{ backgroundColor: "#7CF29C" }}
+              aria-hidden="true"
+            />
             En pantalla ahora
           </span>
         )}
-        <p className="text-lg leading-snug font-medium text-zinc-900 sm:text-xl">
+      </div>
+
+      <div className="min-w-0">
+        <p className="text-lg leading-snug font-bold text-zinc-900 sm:text-xl">
           {pregunta.texto}
         </p>
         <p className="mt-2 text-sm text-zinc-500">
@@ -66,35 +76,28 @@ function PreguntaFila({
         </p>
       </div>
 
-      <div className="flex shrink-0 items-center gap-3">
-        {score && (
-          <span className="shrink-0 rounded-full bg-zinc-900 px-3 py-1.5 text-sm font-bold text-white">
-            {score}
-          </span>
-        )}
-
+      <div className="flex flex-col gap-3 sm:flex-row">
         <button
           type="button"
           onClick={() => onTogglePreseleccion(pregunta.id)}
           disabled={procesando}
-          aria-pressed={pregunta.preseleccionada}
-          aria-label={pregunta.preseleccionada ? "Quitar preselección" : "Preseleccionar pregunta"}
-          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 text-2xl transition disabled:opacity-50 ${
-            pregunta.preseleccionada
-              ? "border-amber-400 bg-amber-400 text-white"
-              : "border-zinc-300 bg-white text-zinc-400"
+          aria-pressed={preseleccionada}
+          aria-label={preseleccionada ? "Quitar preselección" : "Preseleccionar pregunta"}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-xl border-2 bg-white px-5 py-4 text-base font-semibold transition disabled:opacity-50 ${
+            preseleccionada ? "border-[#4472C4] text-[#4472C4]" : "border-[#d9d9d9] text-[#8c8c8c]"
           }`}
         >
-          {pregunta.preseleccionada ? "★" : "☆"}
+          <span className="text-xl leading-none">{preseleccionada ? "★" : "☆"}</span>
+          {preseleccionada ? "Preseleccionada" : "Preseleccionar"}
         </button>
 
         <button
           type="button"
           onClick={() => onElegir(pregunta)}
-          disabled={procesando || pregunta.mostrada_al_ponente}
-          className="shrink-0 rounded-xl bg-zinc-900 px-5 py-4 text-base font-semibold text-white transition disabled:opacity-40"
+          disabled={procesando}
+          className="flex-1 rounded-xl bg-[#22516C] px-5 py-4 text-base font-semibold text-white transition disabled:opacity-50"
         >
-          {pregunta.mostrada_al_ponente ? "En pantalla" : "Elegir para el ponente"}
+          {pregunta.mostrada_al_ponente ? "Volver a elegir" : "Elegir para el ponente"}
         </button>
       </div>
     </li>
@@ -214,7 +217,6 @@ export default function PanelPage() {
   }
 
   async function handleElegirAlPonente(pregunta: PreguntaPanel) {
-    if (pregunta.mostrada_al_ponente) return;
     const confirmado = confirm(
       `¿Mostrar esta pregunta al ponente?\n\n"${pregunta.texto}"\n\nEsto reemplaza la pregunta que esté actualmente en pantalla.`,
     );
@@ -234,87 +236,68 @@ export default function PanelPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 p-6 sm:p-8">
-      <div>
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-semibold">Panel de expertos</h1>
-          <CerrarSesionButton />
+    <div className="flex min-h-screen flex-1 flex-col bg-[#f5f8fa]">
+      <header
+        style={{ background: "linear-gradient(135deg, #14374A 0%, #22516C 55%, #3E76A0 100%)" }}
+      >
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 pt-6 sm:px-8">
+          <h1 className="text-2xl font-bold text-white sm:text-3xl">Panel de Expertos</h1>
+          <CerrarSesionButton className="rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white/80 backdrop-blur transition hover:bg-white/20 hover:text-white disabled:opacity-50" />
         </div>
-      </div>
 
-      <section className="flex flex-col gap-2">
-        <label className="text-sm font-medium text-zinc-700" htmlFor="conferencia">
-          Conferencia
-        </label>
-        <select
-          id="conferencia"
-          value={conferenceId ?? ""}
-          onChange={(e) => setConferenceId(e.target.value)}
-          disabled={cargandoConferences || conferences.length === 0}
-          className="w-full rounded-xl border border-zinc-300 px-4 py-4 text-lg sm:max-w-md"
-        >
-          {conferences.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.titulo}
-              {c.activa ? " (activa)" : ""}
-            </option>
-          ))}
-        </select>
-      </section>
-
-      {errorConferences && (
-        <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {errorConferences}
+        <div className="mx-auto w-full max-w-5xl px-6 pt-5 pb-6 sm:px-8">
+          <div className="w-full rounded-2xl bg-white p-4 shadow-lg sm:max-w-md sm:p-5">
+            <label className="text-sm font-medium text-zinc-700" htmlFor="conferencia">
+              Conferencia
+            </label>
+            <select
+              id="conferencia"
+              value={conferenceId ?? ""}
+              onChange={(e) => setConferenceId(e.target.value)}
+              disabled={cargandoConferences || conferences.length === 0}
+              className="mt-2 w-full rounded-xl border border-zinc-300 px-4 py-4 text-lg"
+            >
+              {conferences.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.titulo}
+                  {c.activa ? " (activa)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-      )}
-      {errorPreguntas && (
-        <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {errorPreguntas}
-        </div>
-      )}
+      </header>
 
-      {!conferenceId && !cargandoConferences ? (
-        <p className="text-zinc-500">No hay conferencias cargadas todavía.</p>
-      ) : (
-        <>
-          <section className="flex flex-col gap-4">
-            <h2 className="text-xl font-bold text-zinc-900">
-              Preguntas de organizaciones estratégicas
-            </h2>
-            {cargandoPreguntas ? (
-              <p className="text-zinc-500">Cargando...</p>
-            ) : estrategicas.length === 0 ? (
-              <p className="text-zinc-500">
-                No hay preguntas aprobadas de organizaciones estratégicas todavía.
-              </p>
-            ) : (
-              <ul className="flex flex-col gap-4">
-                {estrategicas.map((p) => (
-                  <PreguntaFila
-                    key={p.id}
-                    pregunta={p}
-                    procesando={procesandoId === p.id}
-                    onTogglePreseleccion={handleTogglePreseleccion}
-                    onElegir={handleElegirAlPonente}
-                  />
-                ))}
-              </ul>
-            )}
-          </section>
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 p-6 sm:p-8">
+        {errorConferences && (
+          <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorConferences}
+          </div>
+        )}
+        {errorPreguntas && (
+          <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorPreguntas}
+          </div>
+        )}
 
-          <details className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4" open>
-            <summary className="cursor-pointer text-base font-semibold text-zinc-600 select-none">
-              Preguntas de respaldo ({respaldo.length})
-            </summary>
-            <div className="mt-4">
+        {!conferenceId && !cargandoConferences ? (
+          <p className="text-zinc-500">No hay conferencias cargadas todavía.</p>
+        ) : (
+          <>
+            <section className="flex flex-col gap-4">
+              <h2 className="text-sm font-bold tracking-widest text-[#22516C] uppercase sm:text-base">
+                Organizaciones estratégicas
+              </h2>
               {cargandoPreguntas ? (
-                <p className="text-sm text-zinc-500">Cargando...</p>
-              ) : respaldo.length === 0 ? (
-                <p className="text-sm text-zinc-500">No hay preguntas de respaldo todavía.</p>
+                <p className="text-zinc-500">Cargando...</p>
+              ) : estrategicas.length === 0 ? (
+                <p className="text-zinc-500">
+                  No hay preguntas aprobadas de organizaciones estratégicas todavía.
+                </p>
               ) : (
                 <ul className="flex flex-col gap-4">
-                  {respaldo.map((p) => (
-                    <PreguntaFila
+                  {estrategicas.map((p) => (
+                    <PreguntaCard
                       key={p.id}
                       pregunta={p}
                       procesando={procesandoId === p.id}
@@ -324,10 +307,35 @@ export default function PanelPage() {
                   ))}
                 </ul>
               )}
-            </div>
-          </details>
-        </>
-      )}
-    </main>
+            </section>
+
+            <details className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4" open>
+              <summary className="cursor-pointer text-sm font-bold tracking-widest text-[#8c8c8c] uppercase select-none sm:text-base">
+                Preguntas de respaldo ({respaldo.length})
+              </summary>
+              <div className="mt-4">
+                {cargandoPreguntas ? (
+                  <p className="text-sm text-zinc-500">Cargando...</p>
+                ) : respaldo.length === 0 ? (
+                  <p className="text-sm text-zinc-500">No hay preguntas de respaldo todavía.</p>
+                ) : (
+                  <ul className="flex flex-col gap-4">
+                    {respaldo.map((p) => (
+                      <PreguntaCard
+                        key={p.id}
+                        pregunta={p}
+                        procesando={procesandoId === p.id}
+                        onTogglePreseleccion={handleTogglePreseleccion}
+                        onElegir={handleElegirAlPonente}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </details>
+          </>
+        )}
+      </main>
+    </div>
   );
 }

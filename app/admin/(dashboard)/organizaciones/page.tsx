@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import Link from "next/link";
 
 type Organization = {
   id: string;
@@ -116,14 +115,12 @@ export default function OrganizacionesAdminPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 p-8">
-      <div>
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-semibold">Admin — Organizaciones</h1>
-          <Link href="/admin" className="text-sm font-medium text-blue-600 hover:underline">
-            Volver a Conferencias
-          </Link>
-        </div>
-      </div>
+      <h1
+        className="text-3xl text-[#595959]"
+        style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
+      >
+        Organizaciones
+      </h1>
 
       {error && (
         <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -131,28 +128,31 @@ export default function OrganizacionesAdminPage() {
         </div>
       )}
 
-      <section className="rounded-lg border border-zinc-200 p-6">
-        <h2 className="text-lg font-semibold">
+      <section className="rounded-lg border border-[#e5e5e5] p-6">
+        <h2
+          className="text-lg text-[#595959]"
+          style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
+        >
           {editandoId ? "Editar organización" : "Nueva organización"}
         </h2>
 
         <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1 text-sm text-[#595959]">
             Nombre *
             <input
               required
               value={form.nombre}
               onChange={(e) => setForm((prev) => ({ ...prev, nombre: e.target.value }))}
-              className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="rounded-md border border-[#d9d9d9] px-3 py-2 text-sm focus:border-[#4472C4] focus:outline-none"
             />
           </label>
 
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-sm text-[#595959]">
             <input
               type="checkbox"
               checked={form.es_estrategica}
               onChange={(e) => setForm((prev) => ({ ...prev, es_estrategica: e.target.checked }))}
-              className="h-4 w-4 rounded border-zinc-300"
+              className="h-4 w-4 rounded border-[#d9d9d9]"
             />
             Es organización estratégica
           </label>
@@ -161,7 +161,7 @@ export default function OrganizacionesAdminPage() {
             <button
               type="submit"
               disabled={guardando}
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              className="rounded-md bg-[#22516C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1b4258] disabled:opacity-50"
             >
               {guardando ? "Guardando..." : editandoId ? "Guardar cambios" : "Crear organización"}
             </button>
@@ -169,7 +169,7 @@ export default function OrganizacionesAdminPage() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium"
+                className="rounded-md border border-[#d9d9d9] px-4 py-2 text-sm font-medium text-[#595959] hover:bg-zinc-50"
               >
                 Cancelar
               </button>
@@ -178,17 +178,22 @@ export default function OrganizacionesAdminPage() {
         </form>
       </section>
 
-      <section className="rounded-lg border border-zinc-200">
-        <h2 className="border-b border-zinc-200 p-4 text-lg font-semibold">Organizaciones</h2>
+      <section className="rounded-lg border border-[#e5e5e5]">
+        <h2
+          className="border-b border-[#e5e5e5] p-4 text-lg text-[#595959]"
+          style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
+        >
+          Organizaciones
+        </h2>
 
         {cargando ? (
-          <p className="p-4 text-sm text-zinc-500">Cargando...</p>
+          <p className="p-4 text-sm text-[#A6A6A6]">Cargando...</p>
         ) : organizations.length === 0 ? (
-          <p className="p-4 text-sm text-zinc-500">No hay organizaciones cargadas todavía.</p>
+          <p className="p-4 text-sm text-[#A6A6A6]">No hay organizaciones cargadas todavía.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-zinc-500">
+              <thead className="bg-zinc-50 text-[#A6A6A6]">
                 <tr>
                   <th className="px-4 py-2 font-medium">Nombre</th>
                   <th className="px-4 py-2 font-medium">Tipo</th>
@@ -196,7 +201,7 @@ export default function OrganizacionesAdminPage() {
                   <th className="px-4 py-2 font-medium">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-[#eee]">
                 {organizations.map((org) => (
                   <tr key={org.id}>
                     <td className="px-4 py-2">{org.nombre}</td>
@@ -204,8 +209,8 @@ export default function OrganizacionesAdminPage() {
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                           org.es_estrategica
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-zinc-100 text-zinc-500"
+                            ? "bg-[#eaf1fb] text-[#4472C4]"
+                            : "bg-[#f2f2f2] text-[#8c8c8c]"
                         }`}
                       >
                         {org.es_estrategica ? "Estratégica" : "Regular"}
@@ -213,26 +218,26 @@ export default function OrganizacionesAdminPage() {
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs text-zinc-400">{org.id}</span>
+                        <span className="font-mono text-xs text-[#A6A6A6]">{org.id}</span>
                         <button
                           onClick={() => handleCopiarId(org)}
-                          className="text-xs font-medium text-zinc-500 hover:underline"
+                          className="text-xs font-medium text-[#595959] hover:text-[#22516C] hover:underline"
                         >
                           {idCopiadoId === org.id ? "¡Copiado!" : "Copiar ID"}
                         </button>
                       </div>
                     </td>
                     <td className="px-4 py-2">
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
                           onClick={() => handleEditar(org)}
-                          className="text-xs font-medium text-blue-600 hover:underline"
+                          className="rounded-md border border-[#d9d9d9] px-3 py-1.5 text-xs font-medium text-[#595959] hover:bg-zinc-50"
                         >
                           Editar
                         </button>
                         <button
                           onClick={() => handleEliminar(org)}
-                          className="text-xs font-medium text-red-600 hover:underline"
+                          className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
                         >
                           Eliminar
                         </button>

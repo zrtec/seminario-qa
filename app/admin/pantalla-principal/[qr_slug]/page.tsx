@@ -33,9 +33,9 @@ export default async function PantallaPrincipalPage({
 
   if (!conferencia) {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center bg-zinc-950 p-6 text-center text-white">
-        <p className="text-3xl font-semibold">Esta conferencia no está activa</p>
-        <p className="mt-3 max-w-md text-lg text-white/60">
+      <main className="flex flex-1 flex-col items-center justify-center bg-white p-6 text-center">
+        <p className="text-3xl font-semibold text-[#595959]">Esta conferencia no está activa</p>
+        <p className="mt-3 max-w-md text-lg text-[#A6A6A6]">
           Verificá el código QR o activá la conferencia correspondiente desde el panel de admin.
         </p>
       </main>
@@ -64,6 +64,7 @@ export default async function PantallaPrincipalPage({
       conferenceId={conferencia.id}
       titulo={conferencia.titulo}
       ponente={conferencia.ponente}
+      qrSlug={qr_slug}
       preguntaInicial={preguntaData ?? null}
     />
   );

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import PreguntarForm from "./PreguntarForm";
 
@@ -24,10 +25,10 @@ export default async function PreguntarPage({
   if (!conferencia) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center p-6 text-center">
-        <p className="text-xl font-semibold text-zinc-800">
+        <p className="text-xl font-semibold text-[#22516C]">
           Esta conferencia no está disponible en este momento
         </p>
-        <p className="mt-2 text-base text-zinc-500">
+        <p className="mt-2 text-base text-[#595959]">
           Verificá el código QR o consultá con el staff del evento.
         </p>
       </main>
@@ -35,18 +36,43 @@ export default async function PreguntarPage({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 p-4 pb-10">
-      <header className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-center">
-        <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+    <div className="flex flex-1 flex-col">
+      <header
+        className="flex shrink-0 flex-col items-center gap-1 px-6 py-6 text-center"
+        style={{
+          background: "linear-gradient(135deg, #14374A 0%, #22516C 55%, #3E76A0 100%)",
+        }}
+      >
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#bcd6e6]/80">
           Estás preguntando en
         </p>
-        <h1 className="mt-1 text-xl font-bold text-zinc-900">{conferencia.titulo}</h1>
+        <h1
+          className="mt-1 text-xl leading-tight text-white sm:text-2xl"
+          style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
+        >
+          {conferencia.titulo}
+        </h1>
         {conferencia.ponente && (
-          <p className="mt-1 text-base text-zinc-600">{conferencia.ponente}</p>
+          <p className="mt-1 text-sm text-[#bcd6e6] sm:text-base">{conferencia.ponente}</p>
         )}
       </header>
 
-      <PreguntarForm conferenceId={conferencia.id} />
-    </main>
+      <main className="mx-auto w-full max-w-md flex-1 px-4 py-6">
+        <PreguntarForm conferenceId={conferencia.id} />
+      </main>
+
+      {/* Footer institucional en flujo normal (no fixed): esta página sí
+          scrollea, a diferencia de Pantalla Principal / Pantalla Kiosko. */}
+      <footer className="w-full shrink-0 bg-white px-0 py-6">
+        <Image
+          src="/branding/pie.png"
+          alt=""
+          width={1812}
+          height={106}
+          aria-hidden="true"
+          className="h-auto w-full"
+        />
+      </footer>
+    </div>
   );
 }

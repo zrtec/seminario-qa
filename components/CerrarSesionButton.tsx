@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export function CerrarSesionButton() {
+export function CerrarSesionButton({ className }: { className?: string }) {
   const router = useRouter();
   const [saliendo, setSaliendo] = useState(false);
 
@@ -21,7 +21,10 @@ export function CerrarSesionButton() {
       type="button"
       onClick={handleClick}
       disabled={saliendo}
-      className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+      className={
+        className ??
+        "rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+      }
     >
       {saliendo ? "Saliendo…" : "Cerrar sesión"}
     </button>

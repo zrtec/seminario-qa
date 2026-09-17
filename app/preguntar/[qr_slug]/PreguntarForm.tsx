@@ -125,12 +125,12 @@ export default function PreguntarForm({ conferenceId }: { conferenceId: string }
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       {paso === "identificar" && (
         <section className="flex flex-col gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-900">Identificate</h2>
-            <p className="mt-1 text-sm text-zinc-500">
+            <h2 className="text-lg font-semibold text-[#22516C]">Identificate</h2>
+            <p className="mt-1 text-sm text-[#595959]">
               Ingresá el email o el código de acceso con el que te registraste.
             </p>
           </div>
@@ -148,26 +148,26 @@ export default function PreguntarForm({ conferenceId }: { conferenceId: string }
               autoFocus
               autoCapitalize="none"
               autoComplete="off"
-              className="w-full rounded-xl border border-zinc-300 px-4 py-4 text-lg"
+              className="w-full rounded-xl border border-[#d9e2e8] px-4 py-4 text-lg text-[#22516C] outline-none focus:border-[#4472C4] focus:ring-2 focus:ring-[#4472C4]/20"
             />
             <button
               type="submit"
               disabled={buscando || !identificador.trim()}
-              className="w-full rounded-xl bg-zinc-900 px-4 py-4 text-lg font-semibold text-white disabled:opacity-50"
+              className="w-full rounded-xl bg-[#22516C] px-4 py-4 text-lg font-semibold text-white transition hover:bg-[#1b4258] disabled:opacity-50"
             >
               {buscando ? "Buscando..." : "Continuar"}
             </button>
           </form>
 
           {noEncontrado && (
-            <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-base text-amber-800">
+            <div className="rounded-xl border border-[#e8c9a0] bg-[#fdf5ea] p-4 text-base text-[#8a5a1f]">
               No encontramos tu registro. Por favor acércate al staff para
               confirmar tu asistencia.
             </div>
           )}
 
           {errorBusqueda && (
-            <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-base text-red-700">
+            <div className="rounded-xl border border-[#f0c4c4] bg-[#fdf2f2] p-4 text-base text-[#a83a3a]">
               {errorBusqueda}
             </div>
           )}
@@ -175,15 +175,15 @@ export default function PreguntarForm({ conferenceId }: { conferenceId: string }
       )}
 
       {paso !== "identificar" && asistente && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-green-300 bg-green-50 p-4">
-          <p className="text-base text-green-800">
+        <div className="flex items-center justify-between gap-3 rounded-xl bg-[#f5f8fa] p-4">
+          <p className="text-base text-[#22516C]">
             Hola, <span className="font-semibold">{asistente.nombre}</span>
-            {asistente.organization_nombre ? ` (${asistente.organization_nombre})` : ""}
+            {asistente.organization_nombre ? ` · ${asistente.organization_nombre}` : ""}
           </p>
           <button
             type="button"
             onClick={handleNoSoyYo}
-            className="shrink-0 text-sm font-medium text-green-700 underline"
+            className="shrink-0 text-sm font-medium text-[#4472C4] underline"
           >
             No soy yo
           </button>
@@ -192,13 +192,19 @@ export default function PreguntarForm({ conferenceId }: { conferenceId: string }
 
       {paso === "pregunta" && (
         <section className="flex flex-col gap-4">
-          <div className="rounded-xl border-2 border-amber-400 bg-amber-50 p-4 text-base font-medium text-amber-900">
-            No se permiten comentarios ofensivos, groserías, contenido político,
-            religioso o discriminatorio. Las preguntas que no cumplan estas
-            reglas no serán mostradas.
+          <div className="flex items-start gap-2 rounded-xl bg-[#eef4f8] p-4 text-sm text-[#22516C]">
+            <span aria-hidden="true" className="mt-0.5 text-base leading-none">
+              ⓘ
+            </span>
+            <p>
+              No se permiten comentarios ofensivos, groserías, contenido político,
+              religioso o discriminatorio. Las preguntas que no cumplan estas
+              reglas no serán mostradas.
+            </p>
           </div>
 
           <form onSubmit={handleEnviar} className="flex flex-col gap-2">
+            <label className="text-sm font-bold text-[#595959]">Tu pregunta</label>
             <textarea
               value={texto}
               onChange={(e) => setTexto(e.target.value.slice(0, LIMITE_CARACTERES))}
@@ -206,23 +212,23 @@ export default function PreguntarForm({ conferenceId }: { conferenceId: string }
               rows={5}
               placeholder="Escribí tu pregunta..."
               autoFocus
-              className="w-full resize-none rounded-xl border border-zinc-300 px-4 py-3 text-lg"
+              className="w-full resize-none rounded-xl border border-[#d9e2e8] px-4 py-3 text-lg text-[#22516C] outline-none focus:border-[#4472C4] focus:ring-2 focus:ring-[#4472C4]/20"
             />
-            <p className="self-end text-sm text-zinc-400">
+            <p className="self-end text-sm text-[#A6A6A6]">
               {texto.length}/{LIMITE_CARACTERES}
             </p>
 
             <button
               type="submit"
               disabled={enviando || !texto.trim()}
-              className="w-full rounded-xl bg-zinc-900 px-4 py-4 text-lg font-semibold text-white disabled:opacity-50"
+              className="w-full rounded-xl bg-[#22516C] px-4 py-4 text-lg font-semibold text-white transition hover:bg-[#1b4258] disabled:opacity-50"
             >
               {enviando ? "Enviando..." : "Enviar pregunta"}
             </button>
           </form>
 
           {errorEnvio && (
-            <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-base text-red-700">
+            <div className="rounded-xl border border-[#f0c4c4] bg-[#fdf2f2] p-4 text-base text-[#a83a3a]">
               {errorEnvio}
             </div>
           )}
@@ -230,23 +236,28 @@ export default function PreguntarForm({ conferenceId }: { conferenceId: string }
       )}
 
       {paso === "enviada" && (
-        <section className="flex flex-col items-center gap-4 rounded-xl border-2 border-green-400 bg-green-50 p-6 text-center">
-          <p className="text-xl font-semibold text-green-900">
-            ¡Pregunta enviada!
-          </p>
-          <p className="text-base text-green-800">
+        <section className="flex flex-col items-center gap-3 rounded-xl bg-[#f5f8fa] p-6 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#eef4f8] text-2xl text-[#22516C]">
+            ✓
+          </div>
+          <p className="text-xl font-semibold text-[#595959]">¡Pregunta enviada!</p>
+          <p className="text-base text-[#A6A6A6]">
             Puede tardar unos segundos en revisarse.
           </p>
           <button
             type="button"
             onClick={handleEnviarOtra}
             disabled={cooldown > 0}
-            className="w-full rounded-xl bg-zinc-900 px-4 py-4 text-lg font-semibold text-white disabled:opacity-50"
+            className={
+              cooldown > 0
+                ? "w-full rounded-xl bg-[#e9edf0] px-4 py-4 text-lg font-semibold text-[#a6a6a6]"
+                : "w-full rounded-xl bg-[#22516C] px-4 py-4 text-lg font-semibold text-white transition hover:bg-[#1b4258]"
+            }
           >
             Enviar otra pregunta
           </button>
           {cooldown > 0 && (
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-[#22516C]">
               Podrás enviar otra pregunta en {cooldown}s...
             </p>
           )}

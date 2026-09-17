@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import Link from "next/link";
-import { CerrarSesionButton } from "@/components/CerrarSesionButton";
 
 type Conference = {
   id: string;
@@ -218,32 +216,12 @@ export default function AdminPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 p-8">
-      <div>
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-semibold">Admin — Conferencias</h1>
-          <div className="flex gap-4">
-            <Link
-              href="/admin/organizaciones"
-              className="text-sm font-medium text-blue-600 hover:underline"
-            >
-              Organizaciones
-            </Link>
-            <Link
-              href="/admin/asistentes"
-              className="text-sm font-medium text-blue-600 hover:underline"
-            >
-              Asistentes
-            </Link>
-            <Link
-              href="/admin/checkin"
-              className="text-sm font-medium text-blue-600 hover:underline"
-            >
-              Check-in
-            </Link>
-            <CerrarSesionButton />
-          </div>
-        </div>
-      </div>
+      <h1
+        className="text-3xl text-[#595959]"
+        style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
+      >
+        Conferencias
+      </h1>
 
       {error && (
         <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -251,66 +229,69 @@ export default function AdminPage() {
         </div>
       )}
 
-      <section className="rounded-lg border border-zinc-200 p-6">
-        <h2 className="text-lg font-semibold">
+      <section className="rounded-lg border border-[#e5e5e5] p-6">
+        <h2
+          className="text-lg text-[#595959]"
+          style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
+        >
           {editandoId ? "Editar conferencia" : "Nueva conferencia"}
         </h2>
 
         <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex flex-col gap-1 text-sm text-[#595959]">
               Título *
               <input
                 required
                 value={form.titulo}
                 onChange={(e) => handleTituloChange(e.target.value)}
-                className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                className="rounded-md border border-[#d9d9d9] px-3 py-2 text-sm focus:border-[#4472C4] focus:outline-none"
               />
             </label>
 
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex flex-col gap-1 text-sm text-[#595959]">
               Categoría *
               <input
                 required
                 value={form.categoria}
                 onChange={(e) => setForm((prev) => ({ ...prev, categoria: e.target.value }))}
-                className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                className="rounded-md border border-[#d9d9d9] px-3 py-2 text-sm focus:border-[#4472C4] focus:outline-none"
               />
             </label>
 
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex flex-col gap-1 text-sm text-[#595959]">
               Ponente *
               <input
                 required
                 value={form.ponente}
                 onChange={(e) => setForm((prev) => ({ ...prev, ponente: e.target.value }))}
-                className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                className="rounded-md border border-[#d9d9d9] px-3 py-2 text-sm focus:border-[#4472C4] focus:outline-none"
               />
             </label>
 
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex flex-col gap-1 text-sm text-[#595959]">
               QR slug *
               <input
                 required
                 value={form.qr_slug}
                 onChange={(e) => handleQrSlugChange(e.target.value)}
-                className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono"
+                className="rounded-md border border-[#d9d9d9] px-3 py-2 text-sm font-mono focus:border-[#4472C4] focus:outline-none"
               />
             </label>
           </div>
 
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1 text-sm text-[#595959]">
             Resumen *
             <textarea
               required
               rows={3}
               value={form.resumen}
               onChange={(e) => setForm((prev) => ({ ...prev, resumen: e.target.value }))}
-              className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="rounded-md border border-[#d9d9d9] px-3 py-2 text-sm focus:border-[#4472C4] focus:outline-none"
             />
           </label>
 
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1 text-sm text-[#595959]">
             Presentación (PDF, PPT o PPTX — opcional)
             <input
               ref={fileInputRef}
@@ -324,20 +305,20 @@ export default function AdminPage() {
                 href={presentacionUrlActual}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-blue-600 hover:underline"
+                className="text-xs text-[#4472C4] hover:underline"
               >
                 Ver presentación actual
               </a>
             )}
             {archivoSeleccionado && (
-              <span className="text-xs text-zinc-500">
+              <span className="text-xs text-[#A6A6A6]">
                 Se subirá &quot;{archivoSeleccionado.name}&quot; al guardar
                 {presentacionUrlActual ? " (reemplaza la actual)." : "."}
               </span>
             )}
           </label>
 
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-[#A6A6A6]">
             La activación de la conferencia se maneja desde la lista de abajo,
             con el botón &quot;Activar conferencia&quot; de cada fila.
           </p>
@@ -346,7 +327,7 @@ export default function AdminPage() {
             <button
               type="submit"
               disabled={guardando}
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              className="rounded-md bg-[#22516C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1b4258] disabled:opacity-50"
             >
               {guardando ? "Guardando..." : editandoId ? "Guardar cambios" : "Crear conferencia"}
             </button>
@@ -354,7 +335,7 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium"
+                className="rounded-md border border-[#d9d9d9] px-4 py-2 text-sm font-medium text-[#595959] hover:bg-zinc-50"
               >
                 Cancelar
               </button>
@@ -363,17 +344,22 @@ export default function AdminPage() {
         </form>
       </section>
 
-      <section className="rounded-lg border border-zinc-200">
-        <h2 className="border-b border-zinc-200 p-4 text-lg font-semibold">Conferencias</h2>
+      <section className="rounded-lg border border-[#e5e5e5]">
+        <h2
+          className="border-b border-[#e5e5e5] p-4 text-lg text-[#595959]"
+          style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
+        >
+          Conferencias
+        </h2>
 
         {cargando ? (
-          <p className="p-4 text-sm text-zinc-500">Cargando...</p>
+          <p className="p-4 text-sm text-[#A6A6A6]">Cargando...</p>
         ) : conferences.length === 0 ? (
-          <p className="p-4 text-sm text-zinc-500">No hay conferencias cargadas todavía.</p>
+          <p className="p-4 text-sm text-[#A6A6A6]">No hay conferencias cargadas todavía.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-zinc-500">
+              <thead className="bg-zinc-50 text-[#A6A6A6]">
                 <tr>
                   <th className="px-4 py-2 font-medium">Título</th>
                   <th className="px-4 py-2 font-medium">Ponente</th>
@@ -383,7 +369,7 @@ export default function AdminPage() {
                   <th className="px-4 py-2 font-medium">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-[#eee]">
                 {conferences.map((conf) => (
                   <tr key={conf.id}>
                     <td className="px-4 py-2">{conf.titulo}</td>
@@ -394,39 +380,39 @@ export default function AdminPage() {
                         className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                           conf.activa
                             ? "bg-green-100 text-green-700"
-                            : "bg-zinc-100 text-zinc-500"
+                            : "bg-[#f2f2f2] text-[#8c8c8c]"
                         }`}
                       >
                         {conf.activa ? "ACTIVA" : "Inactiva"}
                       </span>
                     </td>
-                    <td className="px-4 py-2 font-mono text-xs">{conf.qr_slug}</td>
+                    <td className="px-4 py-2 font-mono text-xs text-[#A6A6A6]">{conf.qr_slug}</td>
                     <td className="px-4 py-2">
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
                         {conf.activa ? (
                           <button
                             onClick={() => handleDesactivar(conf)}
-                            className="text-xs font-medium text-amber-600 hover:underline"
+                            className="rounded-md border border-[#d9d9d9] px-3 py-1.5 text-xs font-medium text-[#595959] hover:bg-zinc-50"
                           >
                             Desactivar
                           </button>
                         ) : (
                           <button
                             onClick={() => handleActivar(conf)}
-                            className="text-xs font-medium text-green-700 hover:underline"
+                            className="rounded-md bg-[#22516C] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#1b4258]"
                           >
                             Activar conferencia
                           </button>
                         )}
                         <button
                           onClick={() => handleEditar(conf)}
-                          className="text-xs font-medium text-blue-600 hover:underline"
+                          className="rounded-md border border-[#d9d9d9] px-3 py-1.5 text-xs font-medium text-[#595959] hover:bg-zinc-50"
                         >
                           Editar
                         </button>
                         <button
                           onClick={() => handleEliminar(conf)}
-                          className="text-xs font-medium text-red-600 hover:underline"
+                          className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
                         >
                           Eliminar
                         </button>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import Link from "next/link";
 
 type Organizacion = {
   id: string;
@@ -180,14 +179,12 @@ export default function CheckinAdminPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 p-8">
-      <div>
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-semibold">Admin — Check-in</h1>
-          <Link href="/admin" className="text-sm font-medium text-blue-600 hover:underline">
-            Volver a Conferencias
-          </Link>
-        </div>
-      </div>
+      <h1
+        className="text-3xl text-[#595959]"
+        style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
+      >
+        Check-in
+      </h1>
 
       {error && (
         <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -196,48 +193,56 @@ export default function CheckinAdminPage() {
       )}
 
       {asistenteConfirmado && (
-        <section className="rounded-lg border-2 border-green-400 bg-green-50 p-8 text-center">
-          <p className="text-lg text-green-800">
+        <section className="rounded-lg border border-[#e5e5e5] bg-[#eef4f8] p-8 text-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+            ✓ Check-in confirmado
+          </span>
+          <p className="mt-4 text-lg text-[#595959]">
             Bienvenido/a <span className="font-semibold">{asistenteConfirmado.nombre}</span>.
           </p>
-          <p className="mt-4 text-sm text-green-800">Tu código es</p>
-          <p className="mt-1 font-mono text-6xl font-bold tracking-widest text-green-900">
+          <p className="mt-4 text-sm text-[#A6A6A6]">Tu código es</p>
+          <p className="mt-1 font-mono text-6xl font-bold tracking-widest text-[#22516C]">
             {asistenteConfirmado.access_code}
           </p>
-          <p className="mt-4 text-sm text-green-800">
+          <p className="mt-4 text-sm text-[#A6A6A6]">
             Úsalo o tu email para hacer preguntas durante las conferencias.
           </p>
           <button
             type="button"
             onClick={handleCerrarBienvenida}
-            className="mt-6 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+            className="mt-6 rounded-md bg-[#22516C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1b4258]"
           >
             Buscar otra persona
           </button>
         </section>
       )}
 
-      <section className="rounded-lg border border-zinc-200 p-6">
-        <h2 className="text-lg font-semibold">Buscar asistente</h2>
+      <section className="rounded-lg border border-[#e5e5e5] p-6">
+        <h2
+          className="text-lg text-[#595959]"
+          style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
+        >
+          Buscar asistente
+        </h2>
         <input
           ref={inputRef}
           type="text"
           value={termino}
           onChange={(e) => handleTerminoChange(e.target.value)}
           placeholder="Nombre o email..."
-          className="mt-3 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+          className="mt-3 w-full rounded-md border border-[#d9d9d9] px-3 py-2 text-sm focus:border-[#4472C4] focus:outline-none"
           autoFocus
         />
 
-        {buscando && <p className="mt-3 text-sm text-zinc-500">Buscando...</p>}
+        {buscando && <p className="mt-3 text-sm text-[#A6A6A6]">Buscando...</p>}
 
         {!buscando && busquedaHecha && resultados.length === 0 && (
-          <div className="mt-4 rounded-md border border-zinc-200 bg-zinc-50 p-4 text-sm">
-            <p className="text-zinc-600">No se encontró a nadie con &quot;{termino}&quot;.</p>
+          <div className="mt-4 rounded-md border border-[#e5e5e5] bg-zinc-50 p-4 text-sm">
+            <p className="text-[#595959]">No se encontró a nadie con &quot;{termino}&quot;.</p>
             <button
               type="button"
               onClick={handleAbrirRegistro}
-              className="mt-2 text-sm font-medium text-blue-600 hover:underline"
+              className="mt-2 text-sm font-medium text-[#4472C4] hover:underline"
             >
               No está en la lista, registrar ahora
             </button>
@@ -245,15 +250,15 @@ export default function CheckinAdminPage() {
         )}
 
         {!buscando && resultados.length > 0 && (
-          <ul className="mt-4 divide-y divide-zinc-100 rounded-md border border-zinc-200">
+          <ul className="mt-4 divide-y divide-[#eee] rounded-md border border-[#e5e5e5]">
             {resultados.map((asistente) => (
               <li
                 key={asistente.id}
                 className="flex flex-wrap items-center justify-between gap-3 p-3 text-sm"
               >
                 <div>
-                  <p className="font-medium">{asistente.nombre}</p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="font-medium text-[#595959]">{asistente.nombre}</p>
+                  <p className="text-xs text-[#A6A6A6]">
                     {asistente.email} · {asistente.organizations?.nombre ?? "Sin organización"}
                   </p>
                 </div>
@@ -265,7 +270,7 @@ export default function CheckinAdminPage() {
                     <button
                       type="button"
                       onClick={() => handleVerCodigoDeNuevo(asistente)}
-                      className="text-xs font-medium text-blue-600 hover:underline"
+                      className="text-xs font-medium text-[#4472C4] hover:underline"
                     >
                       Ver código de nuevo
                     </button>
@@ -275,7 +280,7 @@ export default function CheckinAdminPage() {
                     type="button"
                     onClick={() => handleConfirmar(asistente)}
                     disabled={confirmandoId === asistente.id}
-                    className="rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                    className="rounded-md bg-[#22516C] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#1b4258] disabled:opacity-50"
                   >
                     {confirmandoId === asistente.id ? "Confirmando..." : "Confirmar asistencia"}
                   </button>
@@ -287,14 +292,19 @@ export default function CheckinAdminPage() {
       </section>
 
       {mostrarFormularioRegistro && (
-        <section className="rounded-lg border border-zinc-200 p-6">
-          <h2 className="text-lg font-semibold">Registrar asistente nuevo</h2>
-          <p className="mt-1 text-xs text-zinc-500">
+        <section className="rounded-lg border border-[#e5e5e5] p-6">
+          <h2
+            className="text-lg text-[#595959]"
+            style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
+          >
+            Registrar asistente nuevo
+          </h2>
+          <p className="mt-1 text-xs text-[#A6A6A6]">
             Se registra directamente como &quot;presente&quot;, generando su código de acceso.
           </p>
 
           <form onSubmit={handleSubmitRegistro} className="mt-4 flex flex-col gap-4">
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex flex-col gap-1 text-sm text-[#595959]">
               Nombre *
               <input
                 required
@@ -302,11 +312,11 @@ export default function CheckinAdminPage() {
                 onChange={(e) =>
                   setFormRegistro((prev) => ({ ...prev, nombre: e.target.value }))
                 }
-                className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                className="rounded-md border border-[#d9d9d9] px-3 py-2 text-sm focus:border-[#4472C4] focus:outline-none"
               />
             </label>
 
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex flex-col gap-1 text-sm text-[#595959]">
               Email *
               <input
                 required
@@ -315,11 +325,11 @@ export default function CheckinAdminPage() {
                 onChange={(e) =>
                   setFormRegistro((prev) => ({ ...prev, email: e.target.value }))
                 }
-                className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                className="rounded-md border border-[#d9d9d9] px-3 py-2 text-sm focus:border-[#4472C4] focus:outline-none"
               />
             </label>
 
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex flex-col gap-1 text-sm text-[#595959]">
               Organización *
               <select
                 required
@@ -327,7 +337,7 @@ export default function CheckinAdminPage() {
                 onChange={(e) =>
                   setFormRegistro((prev) => ({ ...prev, organization_id: e.target.value }))
                 }
-                className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                className="rounded-md border border-[#d9d9d9] px-3 py-2 text-sm focus:border-[#4472C4] focus:outline-none"
               >
                 <option value="">Seleccionar organización...</option>
                 {organizaciones.map((org) => (
@@ -342,14 +352,14 @@ export default function CheckinAdminPage() {
               <button
                 type="submit"
                 disabled={registrando}
-                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                className="rounded-md bg-[#22516C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1b4258] disabled:opacity-50"
               >
                 {registrando ? "Registrando..." : "Registrar y hacer check-in"}
               </button>
               <button
                 type="button"
                 onClick={() => setMostrarFormularioRegistro(false)}
-                className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium"
+                className="rounded-md border border-[#d9d9d9] px-4 py-2 text-sm font-medium text-[#595959] hover:bg-zinc-50"
               >
                 Cancelar
               </button>

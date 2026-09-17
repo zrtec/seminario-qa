@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 
 type Organizacion = {
   id: string;
@@ -245,14 +244,12 @@ export default function AsistentesAdminPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 p-8">
-      <div>
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-semibold">Admin — Asistentes</h1>
-          <Link href="/admin" className="text-sm font-medium text-blue-600 hover:underline">
-            Volver a Conferencias
-          </Link>
-        </div>
-      </div>
+      <h1
+        className="text-3xl text-[#595959]"
+        style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
+      >
+        Asistentes
+      </h1>
 
       {error && (
         <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -260,19 +257,24 @@ export default function AsistentesAdminPage() {
         </div>
       )}
 
-      <section className="rounded-lg border border-zinc-200 p-6">
+      <section className="rounded-lg border border-[#e5e5e5] p-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Cargar asistentes desde CSV</h2>
+          <h2
+            className="text-lg text-[#595959]"
+            style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
+          >
+            Cargar asistentes desde CSV
+          </h2>
           <button
             type="button"
             onClick={handleDescargarPlantilla}
-            className="text-xs font-medium text-blue-600 hover:underline"
+            className="text-xs font-medium text-[#4472C4] hover:underline"
           >
             Descargar plantilla CSV
           </button>
         </div>
 
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-1 text-xs text-[#A6A6A6]">
           Columnas esperadas: <code className="font-mono">nombre,email,organization_id,organization_nombre</code>.
           El <code className="font-mono">organization_id</code> debe ser el uuid real de una organización
           existente; <code className="font-mono">organization_nombre</code> es solo verificación cruzada.
@@ -283,18 +285,18 @@ export default function AsistentesAdminPage() {
           type="file"
           accept=".csv,text/csv"
           onChange={(e) => handleArchivoChange(e.target.files?.[0] ?? null)}
-          className="mt-4 text-sm"
+          className="mt-4 text-sm text-[#595959]"
         />
 
         {procesandoArchivo && (
-          <p className="mt-3 text-sm text-zinc-500">Procesando &quot;{nombreArchivo}&quot;...</p>
+          <p className="mt-3 text-sm text-[#A6A6A6]">Procesando &quot;{nombreArchivo}&quot;...</p>
         )}
 
         {filaPreview && !procesandoArchivo && (
           <div className="mt-6 flex flex-col gap-4">
-            <div className="overflow-x-auto rounded-md border border-zinc-200">
+            <div className="overflow-x-auto rounded-md border border-[#e5e5e5]">
               <table className="w-full text-left text-sm">
-                <thead className="bg-zinc-50 text-zinc-500">
+                <thead className="bg-zinc-50 text-[#A6A6A6]">
                   <tr>
                     <th className="px-3 py-2 font-medium">Línea</th>
                     <th className="px-3 py-2 font-medium">Nombre</th>
@@ -303,10 +305,10 @@ export default function AsistentesAdminPage() {
                     <th className="px-3 py-2 font-medium">Estado</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y divide-[#eee]">
                   {filaPreview.map((fila) => (
                     <tr key={fila.numeroLinea} className={fila.valida ? "" : "bg-red-50"}>
-                      <td className="px-3 py-2 text-zinc-500">{fila.numeroLinea}</td>
+                      <td className="px-3 py-2 text-[#A6A6A6]">{fila.numeroLinea}</td>
                       <td className="px-3 py-2">{fila.nombre}</td>
                       <td className="px-3 py-2">{fila.email}</td>
                       <td className="px-3 py-2">{fila.organization_nombre}</td>
@@ -348,14 +350,14 @@ export default function AsistentesAdminPage() {
                 type="button"
                 onClick={handleConfirmarImportacion}
                 disabled={hayFilasInvalidas || totalValidas === 0 || importando}
-                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                className="rounded-md bg-[#22516C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1b4258] disabled:opacity-50"
               >
                 {importando ? "Importando..." : "Confirmar importación"}
               </button>
               <button
                 type="button"
                 onClick={resetImportacion}
-                className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium"
+                className="rounded-md border border-[#d9d9d9] px-4 py-2 text-sm font-medium text-[#595959] hover:bg-zinc-50"
               >
                 Cancelar
               </button>
@@ -364,17 +366,22 @@ export default function AsistentesAdminPage() {
         )}
       </section>
 
-      <section className="rounded-lg border border-zinc-200">
-        <h2 className="border-b border-zinc-200 p-4 text-lg font-semibold">Asistentes cargados</h2>
+      <section className="rounded-lg border border-[#e5e5e5]">
+        <h2
+          className="border-b border-[#e5e5e5] p-4 text-lg text-[#595959]"
+          style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
+        >
+          Asistentes cargados
+        </h2>
 
         {cargando ? (
-          <p className="p-4 text-sm text-zinc-500">Cargando...</p>
+          <p className="p-4 text-sm text-[#A6A6A6]">Cargando...</p>
         ) : asistentes.length === 0 ? (
-          <p className="p-4 text-sm text-zinc-500">No hay asistentes cargados todavía.</p>
+          <p className="p-4 text-sm text-[#A6A6A6]">No hay asistentes cargados todavía.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-zinc-500">
+              <thead className="bg-zinc-50 text-[#A6A6A6]">
                 <tr>
                   <th className="px-4 py-2 font-medium">Nombre</th>
                   <th className="px-4 py-2 font-medium">Email</th>
@@ -383,7 +390,7 @@ export default function AsistentesAdminPage() {
                   <th className="px-4 py-2 font-medium">Código de acceso</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-[#eee]">
                 {asistentes.map((asistente) => (
                   <tr key={asistente.id}>
                     <td className="px-4 py-2">{asistente.nombre}</td>
@@ -394,7 +401,7 @@ export default function AsistentesAdminPage() {
                         className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                           asistente.status === "presente"
                             ? "bg-green-100 text-green-700"
-                            : "bg-zinc-100 text-zinc-500"
+                            : "bg-[#f2f2f2] text-[#8c8c8c]"
                         }`}
                       >
                         {asistente.status === "presente" ? "Presente" : "Precargado"}
