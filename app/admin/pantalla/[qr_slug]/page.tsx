@@ -12,6 +12,7 @@ type Conferencia = {
 type PreguntaInicial = {
   id: string;
   texto: string;
+  texto_corregido: string | null;
   created_at: string;
   nombre: string;
 };

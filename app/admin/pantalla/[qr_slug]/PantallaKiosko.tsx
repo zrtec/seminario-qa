@@ -12,6 +12,7 @@ const MAX_PREGUNTAS_EN_CICLO = 30;
 type Pregunta = {
   id: string;
   texto: string;
+  texto_corregido: string | null;
   created_at: string;
   nombre: string;
 };
@@ -219,10 +220,10 @@ export default function PantallaKiosko({
               className="w-full max-w-5xl animate-[fadeSlideIn_0.7s_ease-out]"
             >
               <p
-                className={`leading-tight text-[#595959] ${tamanoTextoPregunta(preguntaActual.texto, true)}`}
+                className={`leading-tight text-[#595959] ${tamanoTextoPregunta(preguntaActual.texto_corregido ?? preguntaActual.texto, true)}`}
                 style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
               >
-                {preguntaActual.texto}
+                {preguntaActual.texto_corregido ?? preguntaActual.texto}
               </p>
               <p className="mt-4 text-xl font-normal text-[#A6A6A6] sm:mt-8 sm:text-2xl">
                 <span className="text-[#4472C4]">— </span>

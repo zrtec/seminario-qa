@@ -85,6 +85,7 @@ create unique index if not exists conferences_una_activa_idx
 create table if not exists questions (
   id                  uuid primary key default gen_random_uuid(),
   texto               text not null,
+  texto_corregido     text, -- versión corregida por IA (nullable); 'texto' es el original intacto
   conference_id       uuid not null references conferences (id) on delete cascade,
   attendee_id         uuid not null references attendees (id) on delete cascade,
   ai_status           text not null default 'pendiente'
@@ -577,17 +578,18 @@ create or replace function preguntas_pantalla(
   p_limite integer default 30
 )
 returns table (
-  id         uuid,
-  texto      text,
-  created_at timestamptz,
-  nombre     text
+  id              uuid,
+  texto           text,
+  texto_corregido text,
+  created_at      timestamptz,
+  nombre          text
 )
 language sql
 security definer
 set search_path = public
 stable
 as $$
-  select q.id, q.texto, q.created_at, a.nombre
+  select q.id, q.texto, q.texto_corregido, q.created_at, a.nombre
   from questions q
   join attendees a on a.id = q.attendee_id
   where q.conference_id = p_conference_id
@@ -603,17 +605,18 @@ grant execute on function preguntas_pantalla(uuid, integer) to anon, authenticat
 -- fila puntual (con nombre) cuando una pregunta pasa a aprobada.
 create or replace function pregunta_pantalla_por_id(p_id uuid)
 returns table (
-  id         uuid,
-  texto      text,
-  created_at timestamptz,
-  nombre     text
+  id              uuid,
+  texto           text,
+  texto_corregido text,
+  created_at      timestamptz,
+  nombre          text
 )
 language sql
 security definer
 set search_path = public
 stable
 as $$
-  select q.id, q.texto, q.created_at, a.nombre
+  select q.id, q.texto, q.texto_corregido, q.created_at, a.nombre
   from questions q
   join attendees a on a.id = q.attendee_id
   where q.id = p_id
@@ -639,6 +642,7 @@ create or replace function preguntas_panel_estrategicas(p_conference_id uuid)
 returns table (
   id                  uuid,
   texto               text,
+  texto_corregido     text,
   created_at          timestamptz,
   nombre              text,
   nombre_organizacion text,
@@ -652,7 +656,7 @@ set search_path = public
 stable
 as $$
   select
-    q.id, q.texto, q.created_at,
+    q.id, q.texto, q.texto_corregido, q.created_at,
     a.nombre, o.nombre,
     q.ai_relevance_score, q.preseleccionada, q.mostrada_al_ponente
   from questions q
@@ -670,6 +674,7 @@ create or replace function preguntas_panel_respaldo(p_conference_id uuid)
 returns table (
   id                  uuid,
   texto               text,
+  texto_corregido     text,
   created_at          timestamptz,
   nombre              text,
   nombre_organizacion text,
@@ -683,7 +688,7 @@ set search_path = public
 stable
 as $$
   select
-    q.id, q.texto, q.created_at,
+    q.id, q.texto, q.texto_corregido, q.created_at,
     a.nombre, o.nombre,
     q.ai_relevance_score, q.preseleccionada, q.mostrada_al_ponente
   from questions q
@@ -699,17 +704,18 @@ grant execute on function preguntas_panel_respaldo(uuid) to anon, authenticated;
 
 create or replace function pregunta_al_ponente_actual(p_conference_id uuid)
 returns table (
-  id         uuid,
-  texto      text,
-  created_at timestamptz,
-  nombre     text
+  id              uuid,
+  texto           text,
+  texto_corregido text,
+  created_at      timestamptz,
+  nombre          text
 )
 language sql
 security definer
 set search_path = public
 stable
 as $$
-  select q.id, q.texto, q.created_at, a.nombre
+  select q.id, q.texto, q.texto_corregido, q.created_at, a.nombre
   from questions q
   join attendees a on a.id = q.attendee_id
   where q.conference_id = p_conference_id

@@ -13,6 +13,7 @@ type Conference = {
 type PreguntaPanel = {
   id: string;
   texto: string;
+  texto_corregido: string | null;
   created_at: string;
   nombre: string;
   nombre_organizacion: string | null;
@@ -68,7 +69,7 @@ function PreguntaCard({
 
       <div className="min-w-0">
         <p className="text-lg leading-snug font-bold text-zinc-900 sm:text-xl">
-          {pregunta.texto}
+          {pregunta.texto_corregido ?? pregunta.texto}
         </p>
         <p className="mt-2 text-sm text-zinc-500">
           {pregunta.nombre}
@@ -218,7 +219,7 @@ export default function PanelPage() {
 
   async function handleElegirAlPonente(pregunta: PreguntaPanel) {
     const confirmado = confirm(
-      `¿Mostrar esta pregunta al ponente?\n\n"${pregunta.texto}"\n\nEsto reemplaza la pregunta que esté actualmente en pantalla.`,
+      `¿Mostrar esta pregunta al ponente?\n\n"${pregunta.texto_corregido ?? pregunta.texto}"\n\nEsto reemplaza la pregunta que esté actualmente en pantalla.`,
     );
     if (!confirmado) return;
 

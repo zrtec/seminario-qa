@@ -9,6 +9,7 @@ import { tamanoTextoPregunta } from "@/lib/tamanoTextoPregunta";
 type PreguntaAlAire = {
   id: string;
   texto: string;
+  texto_corregido: string | null;
   created_at: string;
   nombre: string;
 };
@@ -130,10 +131,10 @@ export default function PantallaPrincipal({
                 className="w-full max-w-6xl animate-[fadeSlideIn_0.7s_ease-out]"
               >
                 <p
-                  className={`leading-tight text-[#595959] ${tamanoTextoPregunta(pregunta.texto)}`}
+                  className={`leading-tight text-[#595959] ${tamanoTextoPregunta(pregunta.texto_corregido ?? pregunta.texto)}`}
                   style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
                 >
-                  {pregunta.texto}
+                  {pregunta.texto_corregido ?? pregunta.texto}
                 </p>
                 <p className="mt-10 text-2xl font-normal text-[#A6A6A6] sm:text-3xl">
                   <span className="text-[#4472C4]">— </span>
