@@ -6,12 +6,19 @@ import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/lib/supabase";
 import { tamanoTextoPregunta } from "@/lib/tamanoTextoPregunta";
 
+// Opacidad (0–1) de la capa blanca sobre la imagen de fondo. Súbela si el
+// proyector lava el contraste del texto; bájala para que la imagen se vea más.
+const FONDO_OVERLAY_OPACIDAD = 0.5;
+
 type PreguntaAlAire = {
   id: string;
   texto: string;
   texto_corregido: string | null;
   created_at: string;
   nombre: string;
+  // null si el asistente no tiene organización. Opcional: si la función SQL
+  // todavía no devuelve la columna, simplemente no se muestra.
+  nombre_organizacion?: string | null;
 };
 
 export default function PantallaPrincipal({
@@ -92,17 +99,23 @@ export default function PantallaPrincipal({
   return (
     <div
       ref={contenedorRef}
-      className="relative flex min-h-screen flex-1 flex-col overflow-hidden bg-white pb-3"
+      className="fixed inset-0 flex flex-col overflow-hidden bg-[#DCE6EE] pb-3"
     >
-      {/* Marca de agua institucional — muy sutil, igual que en la portada de
-          las presentaciones del seminario. Decorativa: alt vacío. */}
+      {/* Fondo a pantalla completa. Decorativo: alt vacío. */}
       <Image
-        src="/branding/fondo.png"
+        src="/branding/fondo-principal.jpeg"
         alt=""
         fill
         priority
+        sizes="100vw"
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 object-cover opacity-[0.13]"
+        className="pointer-events-none z-0 object-cover"
+      />
+      {/* Superposición blanca para garantizar contraste del texto. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 bg-white"
+        style={{ opacity: FONDO_OVERLAY_OPACIDAD }}
       />
 
       <button
@@ -113,7 +126,7 @@ export default function PantallaPrincipal({
         {pantallaCompleta ? "Salir de pantalla completa" : "Pantalla completa"}
       </button>
 
-      <div className="relative z-10 flex flex-1 flex-col">
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col">
         {pregunta ? (
           <>
             {/* pt-14: el botón "Pantalla completa" es absolute top-3 con
@@ -125,10 +138,10 @@ export default function PantallaPrincipal({
               </span>
             </header>
 
-            <main className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-10 py-12 text-center">
+            <main className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-10 py-12 text-center">
               <div
                 key={pregunta.id}
-                className="w-full max-w-6xl animate-[fadeSlideIn_0.7s_ease-out]"
+                className="my-auto w-full max-w-6xl animate-[fadeSlideIn_0.7s_ease-out]"
               >
                 <p
                   className={`leading-tight text-[#595959] ${tamanoTextoPregunta(pregunta.texto_corregido ?? pregunta.texto)}`}
@@ -136,9 +149,30 @@ export default function PantallaPrincipal({
                 >
                   {pregunta.texto_corregido ?? pregunta.texto}
                 </p>
-                <p className="mt-10 text-2xl font-normal text-[#A6A6A6] sm:text-3xl">
-                  <span className="text-[#4472C4]">— </span>
-                  {pregunta.nombre}
+                {/* "— Nombre · Organización —": cada pieza es inline-block para
+                    que, si no cabe en una línea, el salto ocurra entre
+                    nombre y organización y no a mitad de un nombre. El guion
+                    de cierre va pegado a la última palabra con &nbsp; para
+                    que nunca quede solo en una línea nueva. */}
+                <p className="mt-10 text-2xl font-normal text-balance text-[#6B6B6B] sm:text-3xl">
+                  <span className="inline-block">
+                    <span aria-hidden="true">— </span>
+                    <span className="font-semibold text-[#22516C]">{pregunta.nombre}</span>
+                    {pregunta.nombre_organizacion ? (
+                      <span aria-hidden="true"> ·</span>
+                    ) : (
+                      <span aria-hidden="true">&nbsp;—</span>
+                    )}
+                  </span>
+                  {pregunta.nombre_organizacion ? (
+                    <>
+                      {" "}
+                      <span className="inline-block">
+                        {pregunta.nombre_organizacion}
+                        <span aria-hidden="true">&nbsp;—</span>
+                      </span>
+                    </>
+                  ) : null}
                 </p>
               </div>
             </main>

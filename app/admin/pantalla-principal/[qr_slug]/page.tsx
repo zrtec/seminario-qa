@@ -13,6 +13,7 @@ type PreguntaAlAire = {
   texto_corregido: string | null;
   created_at: string;
   nombre: string;
+  nombre_organizacion?: string | null;
 };
 
 // TEMPORAL: sin autenticación todavía, igual que /admin/pantalla (Paso 9).

@@ -211,13 +211,13 @@ export default function PantallaKiosko({
             tiene efecto y el contenido empuja todo (incluido el footer)
             fuera del viewport en vez de contenerse/scrollear acá adentro. */}
         <main
-          className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-8 py-4 text-center sm:py-6"
+          className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-8 py-4 text-center sm:py-6"
           style={{ background: "linear-gradient(to bottom, #eef4f8 0%, #ffffff 100%)" }}
         >
           {preguntaActual ? (
             <div
               key={preguntaActual.id}
-              className="w-full max-w-5xl animate-[fadeSlideIn_0.7s_ease-out]"
+              className="my-auto w-full max-w-5xl animate-[fadeSlideIn_0.7s_ease-out]"
             >
               <p
                 className={`leading-tight text-[#595959] ${tamanoTextoPregunta(preguntaActual.texto_corregido ?? preguntaActual.texto, true)}`}
@@ -231,7 +231,7 @@ export default function PantallaKiosko({
               </p>
             </div>
           ) : (
-            <p className="max-w-2xl text-center text-xl font-medium text-[#595959] sm:text-2xl">
+            <p className="my-auto max-w-2xl text-center text-xl font-medium text-[#595959] sm:text-2xl">
               Todavía no hay preguntas aprobadas. ¡Escanea el QR y sé el primero en preguntar!
             </p>
           )}

@@ -702,22 +702,26 @@ $$;
 
 grant execute on function preguntas_panel_respaldo(uuid) to anon, authenticated;
 
-create or replace function pregunta_al_ponente_actual(p_conference_id uuid)
+drop function if exists pregunta_al_ponente_actual(uuid);
+
+create function pregunta_al_ponente_actual(p_conference_id uuid)
 returns table (
-  id              uuid,
-  texto           text,
-  texto_corregido text,
-  created_at      timestamptz,
-  nombre          text
+  id                  uuid,
+  texto               text,
+  texto_corregido     text,
+  created_at          timestamptz,
+  nombre              text,
+  nombre_organizacion text
 )
 language sql
 security definer
 set search_path = public
 stable
 as $$
-  select q.id, q.texto, q.texto_corregido, q.created_at, a.nombre
+  select q.id, q.texto, q.texto_corregido, q.created_at, a.nombre, o.nombre
   from questions q
   join attendees a on a.id = q.attendee_id
+  left join organizations o on o.id = a.organization_id
   where q.conference_id = p_conference_id
     and q.mostrada_al_ponente = true
   limit 1;
