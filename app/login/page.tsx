@@ -47,7 +47,7 @@ export default function LoginPage() {
       if (staffError || !staffRow) {
         await supabase.auth.signOut();
         throw new Error(
-          "Tu cuenta no está vinculada como staff. Contactá a un administrador."
+          "Tu cuenta no está vinculada como staff. Contacta a un administrador."
         );
       }
 

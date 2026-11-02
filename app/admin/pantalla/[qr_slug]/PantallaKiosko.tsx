@@ -201,7 +201,7 @@ export default function PantallaKiosko({
               <div className="h-[224px] w-[224px] rounded-2xl bg-white/10" />
             )}
             <p className="text-xs font-semibold tracking-wide text-white uppercase sm:text-sm">
-              Escaneá para preguntar
+              Escanea para preguntar
             </p>
           </div>
         </header>
@@ -232,7 +232,7 @@ export default function PantallaKiosko({
             </div>
           ) : (
             <p className="max-w-2xl text-center text-xl font-medium text-[#595959] sm:text-2xl">
-              Todavía no hay preguntas aprobadas. ¡Escaneá el QR y sé el primero en preguntar!
+              Todavía no hay preguntas aprobadas. ¡Escanea el QR y sé el primero en preguntar!
             </p>
           )}
         </main>

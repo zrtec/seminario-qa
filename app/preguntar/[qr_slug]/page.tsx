@@ -29,7 +29,7 @@ export default async function PreguntarPage({
           Esta conferencia no está disponible en este momento
         </p>
         <p className="mt-2 text-base text-[#595959]">
-          Verificá el código QR o consultá con el staff del evento.
+          Verifica el código QR o consulta con el staff del evento.
         </p>
       </main>
     );

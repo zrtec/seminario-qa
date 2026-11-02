@@ -73,7 +73,7 @@ export default function PreguntarForm({ conferenceId }: { conferenceId: string }
       });
       setPaso("pregunta");
     } catch {
-      setErrorBusqueda("No pudimos verificar tu registro. Intentá de nuevo.");
+      setErrorBusqueda("No pudimos verificar tu registro. Intenta de nuevo.");
     } finally {
       setBuscando(false);
     }
@@ -111,7 +111,7 @@ export default function PreguntarForm({ conferenceId }: { conferenceId: string }
         // Mensaje ya redactado para el usuario final por insertar_pregunta().
         setErrorEnvio(message);
       } else {
-        setErrorEnvio("No pudimos enviar tu pregunta. Intentá de nuevo.");
+        setErrorEnvio("No pudimos enviar tu pregunta. Intenta de nuevo.");
       }
     } finally {
       setEnviando(false);
@@ -131,7 +131,7 @@ export default function PreguntarForm({ conferenceId }: { conferenceId: string }
           <div>
             <h2 className="text-lg font-semibold text-[#22516C]">Identificate</h2>
             <p className="mt-1 text-sm text-[#595959]">
-              Ingresá el email o el código de acceso con el que te registraste.
+              Ingresa el email o el código de acceso con el que te registraste.
             </p>
           </div>
 
@@ -210,7 +210,7 @@ export default function PreguntarForm({ conferenceId }: { conferenceId: string }
               onChange={(e) => setTexto(e.target.value.slice(0, LIMITE_CARACTERES))}
               maxLength={LIMITE_CARACTERES}
               rows={5}
-              placeholder="Escribí tu pregunta..."
+              placeholder="Escribe tu pregunta..."
               autoFocus
               className="w-full resize-none rounded-xl border border-[#d9e2e8] px-4 py-3 text-lg text-[#22516C] outline-none focus:border-[#4472C4] focus:ring-2 focus:ring-[#4472C4]/20"
             />

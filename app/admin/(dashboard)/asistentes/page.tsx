@@ -327,7 +327,7 @@ export default function AsistentesAdminPage() {
 
             {hayFilasInvalidas ? (
               <p className="text-sm text-red-700">
-                Hay filas con error. Corregí el CSV y volvé a subirlo antes de poder importar.
+                Hay filas con error. Corrige el CSV y vuelve a subirlo antes de poder importar.
               </p>
             ) : (
               <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">

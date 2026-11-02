@@ -36,7 +36,7 @@ export default async function PantallaPage({
       <main className="flex flex-1 flex-col items-center justify-center bg-white p-6 text-center">
         <p className="text-3xl font-semibold text-[#595959]">Esta conferencia no está activa</p>
         <p className="mt-3 max-w-md text-lg text-[#A6A6A6]">
-          Verificá el código QR o activá la conferencia correspondiente desde el panel de admin.
+          Verifica el código QR o activa la conferencia correspondiente desde el panel de admin.
         </p>
       </main>
     );

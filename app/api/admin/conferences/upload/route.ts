@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   const extension = extensionDe(archivo.name);
   if (!EXTENSIONES_PERMITIDAS.includes(extension as (typeof EXTENSIONES_PERMITIDAS)[number])) {
     return NextResponse.json(
-      { error: "Formato no permitido. Subí un archivo .pdf, .ppt o .pptx." },
+      { error: "Formato no permitido. Sube un archivo .pdf, .ppt o .pptx." },
       { status: 400 }
     );
   }
